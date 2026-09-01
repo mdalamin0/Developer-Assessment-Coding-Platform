@@ -1,0 +1,16 @@
+enum Role {
+  CANDIDATE
+  RECRUITER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum AuthProvider {
+  CREDENTIAL
+  GOOGLE
+}
