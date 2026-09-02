@@ -3,6 +3,7 @@ model Recruiter {
   companyName        String?
   companyWebsite     String?
   companyLogo        String?
+  logoPublicId        String?
   companyDescription String?
   designation        String?
 

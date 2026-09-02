@@ -35,29 +35,29 @@ const getMe = async (userId: string) => {
   };
 };
 
-const updateMe = async (payload: ProfileUpdatePayload, userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+// const updateMe = async (payload: ProfileUpdatePayload, userId: string) => {
+//   const user = await prisma.user.findUnique({
+//     where: {
+//       id: userId,
+//     },
+//   });
 
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found!");
-  }
+//   if (!user) {
+//     throw new AppError(httpStatus.NOT_FOUND, "User not found!");
+//   }
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      name: payload.name,
-    },
-    omit: { password: true },
-  });
+//   const updatedUser = await prisma.user.update({
+//     where: {
+//       id: userId,
+//     },
+//     data: {
+//       name: payload.name,
+//     },
+//     omit: { password: true },
+//   });
 
-  return updatedUser;
-};
+//   return updatedUser;
+// };
 
 const uploadProfileImage = async (buffer: Buffer, userId: string) => {
   const currentUser = await prisma.user.findUnique({
@@ -74,7 +74,7 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
   if (!currentUser) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found!");
   }
-  
+
   if (currentUser.status === UserStatus.DELETED) {
     throw new AppError(httpStatus.NOT_FOUND, "User is deleted!");
   }
@@ -130,5 +130,7 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 export const userServices = {
   uploadProfileImage,
   getMe,
-  updateMe
+  // updateMe
 };
+
+

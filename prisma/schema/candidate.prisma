@@ -1,12 +1,13 @@
 model Candidate {
-  id            String   @id @default(uuid())
-  contactNumber String?
-  bio           String?
-  resumeUrl     String?
-  skills        String[] @default([])
-  experience    Int?
-  githubUrl     String?
-  linkedinUrl   String?
+  id             String   @id @default(uuid())
+  contactNumber  String?
+  bio            String?
+  resumeUrl      String?
+  resumePublicId String?
+  skills         String[] @default([])
+  experience     Int?
+  githubUrl      String?
+  linkedinUrl    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

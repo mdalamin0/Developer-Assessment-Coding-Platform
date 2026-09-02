@@ -17,18 +17,18 @@ const getMe = catchAsync(
   },
 );
 
-const updateMe = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const payload = req.body;
-    const userId = req.user?.id;
-    const result = await userServices.updateMe(payload, userId!);
+// const updateMe = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     const payload = req.body;
+//     const userId = req.user?.id;
+//     const result = await userServices.updateMe(payload, userId!);
 
-    sendResponse(res, {
-      message: "User update successfully.",
-      data: result,
-    });
-  },
-);
+//     sendResponse(res, {
+//       message: "User update successfully.",
+//       data: result,
+//     });
+//   },
+// );
 
 const uploadProfileImage = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -57,5 +57,5 @@ const uploadProfileImage = catchAsync(
 export const userControllers = {
   uploadProfileImage,
   getMe,
-  updateMe
+  // updateMe
 };

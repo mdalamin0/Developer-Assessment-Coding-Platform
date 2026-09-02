@@ -9,17 +9,17 @@ import { profileUpdateSchema } from "./user.validation";
 const router = Router();
 
 router.get(
-  "/users/me",
+  "/me",
   auth(Role.ADMIN, Role.CANDIDATE, Role.RECRUITER),
   userControllers.getMe,
 );
 
-router.patch(
-  "/me",
-  auth(Role.ADMIN, Role.CANDIDATE, Role.RECRUITER),
-  validateRequest(profileUpdateSchema),
-  userControllers.updateMe,
-);
+// router.patch(
+//   "/me",
+//   auth(Role.ADMIN, Role.CANDIDATE, Role.RECRUITER),
+//   validateRequest(profileUpdateSchema),
+//   userControllers.updateMe,
+// );
 
 router.patch(
   "/profile-image",

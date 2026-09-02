@@ -8,6 +8,8 @@ import { authRoutes } from "./modules/auth/auth.route";
 import "./config/passport";
 import { userRoutes } from "./modules/user/user.route";
 import { paymentRoutes } from "./modules/payment/payment.route";
+import { candidateRoutes } from "./modules/candidate/candidate.routes";
+import { recruiterRoutes } from "./modules/recruiter/recruiter.routes";
 
 const app: Application = express();
 
@@ -35,8 +37,10 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1", userRoutes);
-app.use("/api/v1/payment", paymentRoutes)
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/candidates", candidateRoutes);
+app.use("/api/v1/recruiters", recruiterRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
