@@ -130,17 +130,7 @@ const googleCallback = catchAsync(
   },
 );
 
-const getMe = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id;
-    const result = await authServices.getMe(userId as string);
 
-    sendResponse(res, {
-      message: "User data retrive successfully.",
-      data: result,
-    });
-  },
-);
 
 const logout = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -166,18 +156,7 @@ const logout = catchAsync(
   },
 );
 
-const updateMe = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const payload = req.body;
-    const userId = req.user?.id;
-    const result = await authServices.updateMe(payload, userId!);
 
-    sendResponse(res, {
-      message: "User update successfully.",
-      data: result,
-    });
-  },
-);
 
 const forgotPassword = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -208,8 +187,6 @@ export const authControllers = {
   verifyEmail,
   loginUser,
   googleCallback,
-  updateMe,
-  getMe,
   logout,
   forgotPassword,
   resetPassword,

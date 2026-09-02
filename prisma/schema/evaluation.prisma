@@ -1,0 +1,14 @@
+model Evaluation {
+  id           String   @id @default(uuid())
+  submissionId String   @unique
+  evaluatorId  String
+  score        Int
+  feedback     String?
+  evaluatedAt  DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  evaluator  User       @relation("EvaluatorEvaluations", fields: [evaluatorId], references: [id])
+
+  @@index([evaluatorId])
+  @@map("evaluations")
+}

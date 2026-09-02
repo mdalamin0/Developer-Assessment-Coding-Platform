@@ -4,14 +4,11 @@ import validateRequest from "../../middlewares/validateRequest";
 import {
   ForgotPasswordZodSchema,
   loginValidationSchema,
-  profileUpdateSchema,
   registerValidationSchema,
   ResetPasswordZodSchema,
   userVerifyEmailZodSchema,
 } from "./auth.validation";
 import passport from "passport";
-import { auth } from "../../middlewares/auth";
-import { Role } from "../../../generated/prisma/enums";
 
 const router = Router();
 
@@ -48,14 +45,6 @@ router.get(
   authControllers.googleCallback,
 );
 
-router.get("/me", auth(Role.ADMIN, Role.USER), authControllers.getMe);
-
-router.patch(
-  "/me",
-  auth(Role.ADMIN, Role.USER),
-  validateRequest(profileUpdateSchema),
-  authControllers.updateMe,
-);
 
 router.post("/logout", authControllers.logout);
 

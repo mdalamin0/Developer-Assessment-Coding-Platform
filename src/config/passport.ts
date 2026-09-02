@@ -100,7 +100,6 @@ passport.use(
             },
           });
 
-          
           if (existingCredentialsUser) {
             if (existingCredentialsUser.status === UserStatus.SUSPENDED) {
               return done(null, false, {
@@ -126,34 +125,41 @@ passport.use(
               data: {
                 name: profile.displayName,
                 email,
-                role: Role.USER,
+                role: Role.CANDIDATE,
                 googleId: profile.id,
                 provider: AuthProvider.GOOGLE,
                 emailVerified: true,
                 image: profile.photos?.[0]?.value,
+
+                candidate: {
+                  create: {},
+                },
+              },
+              include: {
+                candidate: true,
               },
             });
-              try {
-                const templatePath = path.join(
-                  process.cwd(),
-                  "src/templates/user-welcome-email.ejs",
-                );
-            
-                const templateData = {
-                  name: user.name,
-                };
-            
-                const html = await ejs.renderFile(templatePath, templateData);
-            
-                await transporter.sendMail({
-                  from: config.email_sender,
-                  to: email,
-                  subject: "Welcome To B7A6 Project",
-                  html,
-                });
-              } catch (error) {
-                console.error("Failed to send welcome email:", error);
-              }
+            try {
+              const templatePath = path.join(
+                process.cwd(),
+                "src/templates/user-welcome-email.ejs",
+              );
+
+              const templateData = {
+                name: user.name,
+              };
+
+              const html = await ejs.renderFile(templatePath, templateData);
+
+              await transporter.sendMail({
+                from: config.email_sender,
+                to: email,
+                subject: "Welcome To developer assessment & coding platfrom.",
+                html,
+              });
+            } catch (error) {
+              console.error("Failed to send welcome email:", error);
+            }
           }
         }
 
@@ -171,7 +177,12 @@ passport.use(
           });
         }
 
-      
+        if (user.status === UserStatus.DELETED) {
+          return done(null, false, {
+            message: "User is deleted!",
+          });
+        }
+
         return done(null, user);
       } catch (error) {
         return done(error);

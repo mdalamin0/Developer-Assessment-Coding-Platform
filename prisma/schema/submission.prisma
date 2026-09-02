@@ -1,0 +1,20 @@
+model Submission {
+  id           String   @id @default(uuid())
+  attemptId    String
+  problemId    String
+  code         String?
+  language     String?
+  status       SubmissionStatus @default(PENDING)
+  submittedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  attempt Attempt @relation(fields: [attemptId], references: [id])
+  problem Problem @relation(fields: [problemId], references: [id])
+
+  evaluation Evaluation?
+
+  @@index([attemptId])
+  @@index([problemId])
+  @@map("submissions")
+}
+

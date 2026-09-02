@@ -30,13 +30,13 @@ app.use(cookieParser());
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "b7a6 server is running successfully!",
+    message: "Developer Assessment $ Coding Platfrom server is running successfully!",
   });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/payment", paymentRoutes)
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1", userRoutes);
+app.use("/api/v1/payment", paymentRoutes)
 
 app.use(notFound);
 app.use(globalErrorHandler);

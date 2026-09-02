@@ -20,6 +20,10 @@ model User {
 
   candidate Candidate?
   recruiter Recruiter?
+  invitations Invitation[]
+  attempt Attempt[]
+  evaluations Evaluation[] @relation("EvaluatorEvaluations")
+  auditLogs AuditLog[] @relation("UserAuditLogs")
 
   @@map("users")
 }

@@ -6,11 +6,10 @@ import {
   IResetPasswordPayload,
   IVerifyEmailPayload,
   LoginUserPayload,
-  ProfileUpdatePayload,
 } from "./auth.interface";
 import ejs from "ejs";
 import config from "../../config";
-import { AuthProvider, UserStatus } from "../../../generated/prisma/enums";
+import { AuthProvider, Role, UserStatus } from "../../../generated/prisma/enums";
 import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { jwtUtils } from "../../utils/jwt";
@@ -97,18 +96,26 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
   const otp = payload.otp;
   const email = payload.email.trim().toLowerCase();
 
+  // Check existing user
   const isUserExist = await prisma.user.findUnique({
-    where: { email },
+    where: {
+      email,
+    },
   });
 
-  if (isUserExist?.status === "SUSPENDED") {
+  if (isUserExist?.status === UserStatus.SUSPENDED) {
     throw new AppError(httpStatus.FORBIDDEN, "User is suspended!");
+  }
+
+  if (isUserExist?.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted!");
   }
 
   if (isUserExist?.emailVerified) {
     throw new AppError(httpStatus.BAD_REQUEST, "Email already verified.");
   }
 
+  // Get OTP from Redis
   const otpKey = `user-registration-otp:${email}`;
 
   const redisOtp = await redisClient.get(otpKey);
@@ -117,10 +124,12 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid or expired OTP!");
   }
 
+  // Check OTP
   if (redisOtp !== otp) {
     throw new AppError(httpStatus.BAD_REQUEST, "OTP does not match!");
   }
 
+  // Get registration data
   const userRegistrationKey = `user-registration-data:${email}`;
 
   const redisUserData = await redisClient.get(userRegistrationKey);
@@ -134,26 +143,68 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
 
   const userPayload: CreateUserPayload = JSON.parse(redisUserData);
 
-  // Create user in database
-  const createdUser = await prisma.user.create({
-    data: {
-      name: userPayload.name,
-      email: userPayload.email,
-      password: userPayload.password,
-      role: userPayload.role,
-      emailVerified: true,
-      provider: AuthProvider.CREDENTIAL,
-    },
-    omit: {
-      password: true,
-    },
-  });
+  // Create User + Candidate/Recruiter
+  let createdUser;
 
-  // Remove temporary registration data
+  if (userPayload.role === Role.CANDIDATE) {
+    createdUser = await prisma.user.create({
+      data: {
+        name: userPayload.name,
+        email: userPayload.email,
+        password: userPayload.password,
+        role: Role.CANDIDATE,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+
+        candidate: {
+          create: {},
+        },
+      },
+
+      omit: {
+        password: true,
+      },
+
+      include: {
+        candidate: true,
+      },
+    });
+  }
+
+  if (userPayload.role === Role.RECRUITER) {
+    createdUser = await prisma.user.create({
+      data: {
+        name: userPayload.name,
+        email: userPayload.email,
+        password: userPayload.password,
+        role: Role.RECRUITER,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+
+        recruiter: {
+          create: {},
+        },
+      },
+
+      omit: {
+        password: true,
+      },
+
+      include: {
+        recruiter: true,
+      },
+    });
+  }
+
+  // Remove Redis data
   await redisClient.del(otpKey);
   await redisClient.del(userRegistrationKey);
 
-  // Welcome email is non-critical
+  if (!createdUser) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user role");
+  }
+
+  // Send welcome email
   try {
     const templatePath = path.join(
       process.cwd(),
@@ -161,7 +212,7 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
     );
 
     const templateData = {
-      name: createdUser.name,
+      name: createdUser?.name,
     };
 
     const html = await ejs.renderFile(templatePath, templateData);
@@ -169,26 +220,30 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
     await transporter.sendMail({
       from: config.email_sender,
       to: email,
-      subject: "Welcome To B7A6 Project",
+      subject: "Welcome To developer assessment & coding platfrom.",
       html,
     });
   } catch (error) {
     console.error("Failed to send welcome email:", error);
   }
 
-  // Generate JWT
+ 
+
+  // JWT payload
   const jwtPayload = {
     userId: createdUser.id,
     email: createdUser.email,
     role: createdUser.role,
   };
 
+  // Access token
   const accessToken = jwtUtils.createToken(
     jwtPayload,
     config.jwt_access_secret,
     config.jwt_access_expires_in as SignOptions,
   );
 
+  // Refresh token
   const refreshToken = jwtUtils.createToken(
     jwtPayload,
     config.jwt_refresh_secret,
@@ -225,46 +280,6 @@ const generateTokens = async (user: PrismaUser) => {
     accessToken,
     refreshToken,
   };
-};
-
-const getMe = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-    omit: {
-      password: true,
-    },
-  });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user;
-};
-
-const updateMe = async (payload: ProfileUpdatePayload, userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
-
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found!");
-  }
-
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      name: payload.name,
-    },
-    omit: { password: true },
-  });
-
-  return updatedUser;
 };
 
 const forgotPassword = async (payload: IForgotPasswordPayload) => {
@@ -403,8 +418,6 @@ export const authServices = {
   registerUser,
   verifyEmail,
   generateTokens,
-  getMe,
-  updateMe,
   forgotPassword,
   resetPassword,
 };

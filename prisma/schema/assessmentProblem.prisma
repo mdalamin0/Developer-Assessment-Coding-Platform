@@ -1,0 +1,17 @@
+model AssessmentProblem {
+  id             String   @id @default(uuid())
+  assessmentId   String
+  problemId      String
+  questionOrder  Int
+  marks          Int
+
+  createdAt      DateTime @default(now())
+  
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  problem    Problem    @relation(fields: [problemId], references: [id])
+
+  @@unique([assessmentId, problemId])
+  @@unique([assessmentId, questionOrder])
+  @@index([problemId])
+  @@map("assessment_problems")
+}

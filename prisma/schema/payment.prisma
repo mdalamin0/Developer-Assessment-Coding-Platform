@@ -1,0 +1,19 @@
+
+
+model Payment {
+  id            String        @id @default(uuid())
+  recruiterId   String
+  amount        Decimal
+  transactionId String        @unique
+  paymentMethod PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  invoiceId     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  recruiter Recruiter @relation(fields: [recruiterId], references: [id])
+
+  @@index([recruiterId])
+  @@index([status])
+  @@map("payments")
+}

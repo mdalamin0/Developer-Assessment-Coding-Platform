@@ -1,6 +1,6 @@
 model Recruiter {
   id                 String   @id @default(uuid())
-  companyName        String
+  companyName        String?
   companyWebsite     String?
   companyLogo        String?
   companyDescription String?
@@ -10,7 +10,10 @@ model Recruiter {
   updatedAt          DateTime @updatedAt
 
   userId             String   @unique
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  assessments Assessment[]
+  problems Problem[]
+  payments Payment[]
 
   @@map("recruiters")
 }

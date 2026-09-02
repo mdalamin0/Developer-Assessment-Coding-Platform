@@ -5,6 +5,31 @@ import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import sendResponse from "../../utils/sendResponse";
 
+const getMe = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+    const result = await userServices.getMe(userId as string);
+
+    sendResponse(res, {
+      message: "User data retrive successfully.",
+      data: result,
+    });
+  },
+);
+
+const updateMe = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const payload = req.body;
+    const userId = req.user?.id;
+    const result = await userServices.updateMe(payload, userId!);
+
+    sendResponse(res, {
+      message: "User update successfully.",
+      data: result,
+    });
+  },
+);
+
 const uploadProfileImage = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     if (!req.file) {
@@ -31,4 +56,6 @@ const uploadProfileImage = catchAsync(
 
 export const userControllers = {
   uploadProfileImage,
+  getMe,
+  updateMe
 };

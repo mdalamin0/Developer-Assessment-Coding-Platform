@@ -1,0 +1,24 @@
+model Assessment {
+  id           String           @id @default(uuid())
+  recruiterId  String
+  title        String
+  description  String?
+  duration     Int // minutes
+  totalMarks   Int
+  passingMarks Int
+  status       AssessmentStatus @default(DRAFT)
+  startAt      DateTime?
+  endAt        DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  recruiter   Recruiter           @relation(fields: [recruiterId], references: [id])
+  problems    AssessmentProblem[]
+  invitations Invitation[]
+  attempts    Attempt[]
+
+  @@index([recruiterId])
+  @@index([status])
+  @@map("assessments")
+}

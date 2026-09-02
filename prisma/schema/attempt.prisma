@@ -1,0 +1,23 @@
+model Attempt {
+  id           String        @id @default(uuid())
+  assessmentId String
+  candidateId  String
+  status       AttemptStatus @default(IN_PROGRESS)
+  startedAt    DateTime      @default(now())
+  expiresAt    DateTime?
+  submittedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  candidate  User       @relation(fields: [candidateId], references: [id])
+
+  answers     Answer[]
+  submissions Submission[]
+  result      Result?
+
+  @@unique([assessmentId, candidateId])
+  @@index([candidateId])
+  @@index([assessmentId])
+  @@map("attempts")
+}

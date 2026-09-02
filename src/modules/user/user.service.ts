@@ -3,6 +3,61 @@ import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
+import { ProfileUpdatePayload } from "./user.interface";
+import { UserStatus } from "../../../generated/prisma/enums";
+
+
+const getMe = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    omit: {
+      password: true,
+    },
+    include: {
+      candidate: true,
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+
+  const { candidate, recruiter, ...userData } = user;
+
+  return {
+    ...userData,
+    ...(user.role === "CANDIDATE" && { profile: candidate }),
+    ...(user.role === "RECRUITER" && { profile: recruiter }),
+  };
+};
+
+const updateMe = async (payload: ProfileUpdatePayload, userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found!");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      name: payload.name,
+    },
+    omit: { password: true },
+  });
+
+  return updatedUser;
+};
 
 const uploadProfileImage = async (buffer: Buffer, userId: string) => {
   const currentUser = await prisma.user.findUnique({
@@ -10,6 +65,7 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
       id: userId,
     },
     select: {
+      status: true,
       image: true,
       imagePublicId: true,
     },
@@ -17,6 +73,10 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 
   if (!currentUser) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found!");
+  }
+  
+  if (currentUser.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.NOT_FOUND, "User is deleted!");
   }
 
   const cloudinaryResult = await new Promise<UploadApiResponse>(
@@ -69,4 +129,6 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 
 export const userServices = {
   uploadProfileImage,
+  getMe,
+  updateMe
 };

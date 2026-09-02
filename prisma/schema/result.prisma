@@ -1,0 +1,12 @@
+model Result {
+  id           String   @id @default(uuid())
+  attemptId    String   @unique
+  totalScore   Float
+  percentage   Float
+  passed       Boolean
+  generatedAt  DateTime @default(now())
+
+  attempt Attempt @relation(fields: [attemptId], references: [id])
+
+  @@map("results")
+}

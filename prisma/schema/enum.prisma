@@ -14,3 +14,76 @@ enum AuthProvider {
   CREDENTIAL
   GOOGLE
 }
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProblemType {
+  MCQ
+  WRITTEN
+  CODING
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+enum SubmissionStatus {
+  PENDING
+  EVALUATED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  INVITE
+  SUBMIT
+  EVALUATE
+  SUSPEND
+  ACTIVATE
+  PAYMENT_COMPLETED
+}
+
+enum AuditEntity {
+  USER
+  ASSESSMENT
+  PROBLEM
+  INVITATION
+  ATTEMPT
+  SUBMISSION
+  PAYMENT
+}
+
+
+enum PaymentMethod {
+  BKASH
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
