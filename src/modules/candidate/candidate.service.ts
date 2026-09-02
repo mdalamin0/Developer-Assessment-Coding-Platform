@@ -5,8 +5,6 @@ import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import { CandidateUpdatePayload } from "./candidate.interface";
 
-
-
 const uploadToCloudinary = (buffer: Buffer): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader
@@ -48,11 +46,13 @@ const updateCandidateProfile = async (
 
   let resumeUrl = candidate.resumeUrl;
   let resumePublicId = candidate.resumePublicId;
+  let isNewFileUploaded = false;
 
   if (file) {
     const cloudinaryResult = await uploadToCloudinary(file.buffer);
     resumeUrl = cloudinaryResult.secure_url;
     resumePublicId = cloudinaryResult.public_id;
+    isNewFileUploaded = true;
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -81,21 +81,23 @@ const updateCandidateProfile = async (
         ...(payload.linkedinUrl !== undefined && {
           linkedinUrl: payload.linkedinUrl,
         }),
-        ...(resumeUrl !== candidate.resumeUrl && { resumeUrl }),
-        resumePublicId
+        ...(isNewFileUploaded && {
+          resumeUrl,
+          resumePublicId,
+        }),
       },
     });
 
     return { ...updatedUser, profile: updatedCandidate };
   });
 
-    if (candidate.resumePublicId && candidate.resumeUrl) {
-      try {
-        await cloudinary.uploader.destroy(candidate.resumePublicId);
-      } catch (error) {
-        console.error("Failed to delete old resume:", error);
-      }
+  if (isNewFileUploaded && candidate.resumePublicId) {
+    try {
+      await cloudinary.uploader.destroy(candidate.resumePublicId);
+    } catch (error) {
+      console.error("Failed to delete old resume:", error);
     }
+  }
 
   return result;
 };

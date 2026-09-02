@@ -123,7 +123,7 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
      console.error("Failed to delete old profile image:", error);
    }
  }
-
+ 
   return updatedUser;
 };
 

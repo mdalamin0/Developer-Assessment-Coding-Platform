@@ -6,9 +6,10 @@ import sendResponse from "../../utils/sendResponse";
 const updateRecruiterProfile = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.id;
+    const payload = req.body.data ? JSON.parse(req.body.data) : {};
     const result = await recruiterServices.updateRecruiterProfile(
       userId!,
-      req.body,
+      payload,
       req.file,
     );
 

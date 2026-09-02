@@ -46,10 +46,14 @@ const updateRecruiterProfile = async (
   }
 
   let companyLogo = recruiter.companyLogo;
+  let logoPublicId = recruiter.logoPublicId;
+   let isNewFileUploaded = false;
 
   if (file) {
     const cloudinaryResult = await uploadToCloudinary(file.buffer);
     companyLogo = cloudinaryResult.secure_url;
+    logoPublicId = cloudinaryResult.public_id;
+    isNewFileUploaded = true
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -76,12 +80,25 @@ const updateRecruiterProfile = async (
         ...(payload.designation !== undefined && {
           designation: payload.designation,
         }),
-        ...(companyLogo !== recruiter.companyLogo && { companyLogo }),
+        ...(isNewFileUploaded && {
+          companyLogo,
+          logoPublicId,
+        }),
       },
     });
 
     return { ...updatedUser, profile: updatedRecruiter };
   });
+
+
+   if (isNewFileUploaded && recruiter.logoPublicId) {
+     try {
+       await cloudinary.uploader.destroy(recruiter.logoPublicId);
+     } catch (error) {
+       console.error("Failed to delete old logo:", error);
+     }
+   }
+
 
   return result;
 };
