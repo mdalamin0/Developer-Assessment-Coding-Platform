@@ -4,8 +4,9 @@ import { jwtUtils } from "../utils/jwt";
 import config from "../config";
 import { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
-import { Role } from "../../generated/prisma/enums";
-
+import { Role, UserStatus } from "../../generated/prisma/enums";
+import AppError from "../errors/AppError";
+import httpStatus from "http-status";
 
 export const auth = (...requiredRoles: Role[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -15,39 +16,48 @@ export const auth = (...requiredRoles: Role[]) => {
         ? req.headers.authorization.split(" ")[1]
         : req.headers.authorization;
     if (!token) {
-      throw new Error("You are not logged in. please log in");
+      throw new AppError(httpStatus.UNAUTHORIZED, "You are not logged in. please log in");
     }
 
     const verifiedToken = jwtUtils.verifyToken(token, config.jwt_access_secret);
 
     if (!verifiedToken.success) {
-      throw new Error(verifiedToken.error);
+      throw new AppError(httpStatus.UNAUTHORIZED, verifiedToken.error);
     }
 
-    const { id, email, role } = verifiedToken.data as JwtPayload;
+    
+    const { userId, email, role } = verifiedToken.data as JwtPayload;
 
     if (requiredRoles.length && !requiredRoles.includes(role)) {
-      throw new Error("Forbidden, you have don't permission");
+      throw new AppError(httpStatus.FORBIDDEN, "Forbidden, you have don't permission");
     }
 
     const user = await prisma.user.findUnique({
       where: {
-        id,
+        id: userId,
         email,
       },
     });
 
     if (!user) {
-      throw new Error("User not found! Please login again.");
+      throw new AppError(httpStatus.NOT_FOUND, "User not found! Please login again.");
     }
 
-    if (user.status === "SUSPENDED") {
-      throw new Error(
+    if (user.status === UserStatus.SUSPENDED) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
         "Your account has been suspended. Please contact support!",
       );
     }
 
-req.user= user
+    if (user.status === UserStatus.DELETED) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Your account has been deleted. Please contact support!",
+      );
+    }
+
+    req.user = user;
 
     next();
   });
