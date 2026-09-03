@@ -35,7 +35,7 @@ router.patch(
 
 router.delete(
   "/:id",
-  auth(Role.RECRUITER),
+  auth(Role.RECRUITER, Role.ADMIN),
   problemControllers.deleteProblem,
 );
 

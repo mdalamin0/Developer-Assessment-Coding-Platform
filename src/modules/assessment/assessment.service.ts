@@ -9,12 +9,13 @@ import {
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import {
+  IAddProblemPayload,
   IAssessmentQuery,
   ICreateAssessmentPayload,
   IUpdateAssessmentPayload,
 } from "./assessment.interface";
 import httpStatus from "http-status";
-import { isBefore, parseISO } from "date-fns";
+import { add, isBefore, parseISO } from "date-fns";
 import { Prisma } from "../../../generated/prisma/client";
 import { isAfter } from "date-fns";
 
@@ -622,6 +623,275 @@ const deleteAssessment = async (userId: string, assessmentId: string) => {
   return deletedAssessment;
 };
 
+
+
+// Assessment-problem services 
+const addProblemToAssessment = async (
+  userId: string,
+  assessmentId: string,
+  payload: IAddProblemPayload,
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  // Assessment ownership + status check
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+    include: {
+      problems: true,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
+  }
+
+  if (
+    assessment.status === AssessmentStatus.ONGOING ||
+    assessment.status === AssessmentStatus.COMPLETED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Problems cannot be added to an ongoing or completed assessment.",
+    );
+  }
+
+  // Find recruiter's problem
+  const problem = await prisma.problem.findFirst({
+    where: {
+      id: payload.problemId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+  });
+
+  if (!problem) {
+    throw new AppError(httpStatus.NOT_FOUND, "Problem not found.");
+  }
+
+  // Prevent duplicate problem
+  const alreadyAdded = assessment.problems.some(
+    (item) => item.problemId === problem.id,
+  );
+
+  if (alreadyAdded) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "This problem is already added to the assessment.",
+    );
+  }
+
+  // Backend generates the next question order
+  const questionOrder = assessment.problems.length + 1;
+
+  const assessmentProblem = await prisma.assessmentProblem.create({
+    data: {
+      assessmentId: assessment.id,
+      problemId: problem.id,
+      questionOrder,
+      marks: problem.marks,
+    },
+    include: {
+      problem: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          type: true,
+          difficulty: true,
+          marks: true,
+          options: true,
+        },
+      },
+    },
+  });
+
+  return assessmentProblem;
+};
+
+const getAssessmentProblems = async (userId: string, assessmentId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
+  }
+
+  const assessmentProblems = await prisma.assessmentProblem.findMany({
+    where: {
+      assessmentId: assessment.id,
+    },
+    orderBy: {
+      questionOrder: "asc",
+    },
+    include: {
+      problem: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          type: true,
+          difficulty: true,
+          marks: true,
+          options: true,
+        },
+      },
+    },
+  });
+
+  return assessmentProblems;
+};
+
+const removeProblemFromAssessment = async (
+  userId: string,
+  assessmentId: string,
+  problemId: string,
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
+  }
+
+  if (
+    assessment.status === AssessmentStatus.ONGOING ||
+    assessment.status === AssessmentStatus.COMPLETED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Problems cannot be removed from an ongoing or completed assessment.",
+    );
+  }
+
+  const assessmentProblem = await prisma.assessmentProblem.findFirst({
+    where: {
+      assessmentId: assessment.id,
+      problemId,
+    },
+  });
+
+  if (!assessmentProblem) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Problem is not attached to this assessment.",
+    );
+  }
+
+  await prisma.assessmentProblem.delete({
+    where: {
+      id: assessmentProblem.id,
+    },
+  });
+
+  // Re-order remaining problems
+  const remainingProblems = await prisma.assessmentProblem.findMany({
+    where: {
+      assessmentId: assessment.id,
+    },
+    orderBy: {
+      questionOrder: "asc",
+    },
+  });
+
+  await prisma.$transaction(
+    remainingProblems.map((item, index) =>
+      prisma.assessmentProblem.update({
+        where: {
+          id: item.id,
+        },
+        data: {
+          questionOrder: index + 1,
+        },
+      }),
+    ),
+  );
+
+  return null;
+};
+
+
+
 export const assessmentServices = {
   createAssessment,
   getMyAssessments,
@@ -630,4 +900,7 @@ export const assessmentServices = {
   getAllAssessments,
   deleteAssessment,
   publishAssessment,
+  addProblemToAssessment,
+  getAssessmentProblems,
+  removeProblemFromAssessment,
 };

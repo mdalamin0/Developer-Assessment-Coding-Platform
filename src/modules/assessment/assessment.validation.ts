@@ -13,7 +13,6 @@ export const createAssessmentValidationSchema = z.object({
   endAt: z.string().datetime().optional(),
 });
 
-
 export const updateAssessmentValidationSchema = z
   .object({
     title: z.string().min(3, "Title must be at least 3 characters").optional(),
@@ -68,3 +67,7 @@ export const updateAssessmentValidationSchema = z
       path: ["endAt"],
     },
   );
+
+export const addProblemValidationSchema = z.object({
+  problemId: z.string().uuid("Invalid problem ID"),
+});

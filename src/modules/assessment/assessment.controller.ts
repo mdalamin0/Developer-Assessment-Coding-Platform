@@ -97,7 +97,7 @@ const publishAssessment = catchAsync(async (req: Request, res: Response) => {
 
   const result = await assessmentServices.publishAssessment(
     userId,
-    id as string
+    id as string,
   );
 
   sendResponse(
@@ -129,6 +129,72 @@ const deleteAssessment = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+// Assessment Problem Controllers
+const addProblemToAssessment = catchAsync(
+  async (req: Request, res: Response) => {
+    const recruiterId = req.user?.id!;
+    const assessmentId = req.params.assessmentId as string;
+
+    const result = await assessmentServices.addProblemToAssessment(
+      recruiterId,
+      assessmentId,
+      req.body,
+    );
+
+    sendResponse(
+      res,
+      {
+        message: "Problem added to assessment successfully!",
+        data: result,
+      },
+      httpStatus.CREATED,
+    );
+  },
+);
+
+const getAssessmentProblems = catchAsync(
+  async (req: Request, res: Response) => {
+    const recruiterId = req.user?.id!;
+    const assessmentId = req.params.assessmentId as string;
+
+    const result = await assessmentServices.getAssessmentProblems(
+      recruiterId,
+      assessmentId,
+    );
+
+    sendResponse(
+      res,
+      {
+        message: "Assessment problems retrieved successfully!",
+        data: result,
+      },
+      httpStatus.OK,
+    );
+  },
+);
+
+const removeProblemFromAssessment = catchAsync(
+  async (req: Request, res: Response) => {
+    const recruiterId = req.user?.id!;
+    const { assessmentId, problemId } = req.params;
+
+    const result = await assessmentServices.removeProblemFromAssessment(
+      recruiterId,
+      assessmentId as string,
+      problemId as string,
+    );
+
+    sendResponse(
+      res,
+      {
+        message: "Problem removed from assessment successfully!",
+        data: result,
+      },
+      httpStatus.OK,
+    );
+  },
+);
+
 export const assessmentControllers = {
   createAssessment,
   getMyAssessments,
@@ -137,4 +203,7 @@ export const assessmentControllers = {
   getAllAssessments,
   deleteAssessment,
   publishAssessment,
+  addProblemToAssessment,
+  getAssessmentProblems,
+  removeProblemFromAssessment,
 };

@@ -388,19 +388,26 @@ const deleteProblem = async (userId: string, problemId: string) => {
           }
         : {}),
     },
+    include: {
+      assessments: true,
+    },
   });
 
   if (!problem) {
+    throw new AppError(httpStatus.NOT_FOUND, "Problem not found.");
+  }
+
+  // Don't delete a problem that is already used in an assessment
+  if (problem.assessments.length > 0) {
     throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Problem not found or you do not have permission to delete it.",
+      httpStatus.BAD_REQUEST,
+      "This problem is already attached to an assessment and cannot be deleted.",
     );
   }
 
-
   const deletedProblem = await prisma.problem.update({
     where: {
-      id: problemId,
+      id: problem.id,
     },
     data: {
       deletedAt: new Date(),

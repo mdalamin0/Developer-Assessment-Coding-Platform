@@ -22,3 +22,7 @@ export interface IUpdateAssessmentPayload {
   startAt?: string | null;
   endAt?: string | null;
 }
+
+export interface IAddProblemPayload {
+  problemId: string;
+}

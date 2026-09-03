@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { Role } from "../../../generated/prisma/enums";
 import validateRequest from "../../middlewares/validateRequest";
-import { createAssessmentValidationSchema } from "./assessment.validation";
+import { addProblemValidationSchema, createAssessmentValidationSchema } from "./assessment.validation";
 import { assessmentControllers } from "./assessment.controller";
 import { auth } from "../../middlewares/auth";
 
@@ -49,6 +49,26 @@ router.delete(
   "/:id",
   auth(Role.RECRUITER, Role.ADMIN),
   assessmentControllers.deleteAssessment,
+);
+
+// Assessment-Problem Routes
+router.post(
+  "/:assessmentId/problems",
+  auth(Role.RECRUITER),
+  validateRequest(addProblemValidationSchema),
+  assessmentControllers.addProblemToAssessment,
+);
+
+router.get(
+  "/:assessmentId/problems",
+  auth(Role.RECRUITER),
+  assessmentControllers.getAssessmentProblems,
+);
+
+router.delete(
+  "/:assessmentId/problems/:problemId",
+  auth(Role.RECRUITER),
+  assessmentControllers.removeProblemFromAssessment,
 );
 
 export const assessmentRoutes = router;
