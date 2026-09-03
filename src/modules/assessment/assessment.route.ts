@@ -71,4 +71,10 @@ router.delete(
   assessmentControllers.removeProblemFromAssessment,
 );
 
+router.patch(
+  "/:assessmentId/problems/reorder",
+  auth(Role.RECRUITER),
+  assessmentControllers.reorderAssessmentProblems,
+);
+
 export const assessmentRoutes = router;

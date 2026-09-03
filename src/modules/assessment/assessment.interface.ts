@@ -26,3 +26,12 @@ export interface IUpdateAssessmentPayload {
 export interface IAddProblemPayload {
   problemId: string;
 }
+
+export interface IReorderProblem {
+  problemId: string;
+  questionOrder: number;
+}
+
+export interface IReorderProblemsPayload {
+  problems: IReorderProblem[];
+}

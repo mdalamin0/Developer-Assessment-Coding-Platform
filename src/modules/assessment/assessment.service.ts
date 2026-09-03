@@ -12,6 +12,7 @@ import {
   IAddProblemPayload,
   IAssessmentQuery,
   ICreateAssessmentPayload,
+  IReorderProblemsPayload,
   IUpdateAssessmentPayload,
 } from "./assessment.interface";
 import httpStatus from "http-status";
@@ -890,6 +891,172 @@ const removeProblemFromAssessment = async (
   return null;
 };
 
+const reorderAssessmentProblems = async (
+  userId: string,
+  assessmentId: string,
+  payload: IReorderProblemsPayload,
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
+  }
+
+  if (
+    assessment.status === AssessmentStatus.ONGOING ||
+    assessment.status === AssessmentStatus.COMPLETED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Problems cannot be reordered in an ongoing or completed assessment.",
+    );
+  }
+
+  const assessmentProblems = await prisma.assessmentProblem.findMany({
+    where: {
+      assessmentId: assessment.id,
+    },
+    select: {
+      id: true,
+      problemId: true,
+      questionOrder: true,
+    },
+  });
+
+  if (payload.problems.length !== assessmentProblems.length) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "All assessment problems must be included in the reorder request.",
+    );
+  }
+
+  const existingProblemIds = new Set(
+    assessmentProblems.map((item) => item.problemId),
+  );
+
+  const receivedProblemIds = new Set(
+    payload.problems.map((item) => item.problemId),
+  );
+
+  if (existingProblemIds.size !== receivedProblemIds.size) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Duplicate problems are not allowed.",
+    );
+  }
+
+  for (const problem of payload.problems) {
+    if (!existingProblemIds.has(problem.problemId)) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Problem ${problem.problemId} is not attached to this assessment.`,
+      );
+    }
+  }
+
+  const orders = payload.problems.map((item) => item.questionOrder);
+
+  const expectedOrders = Array.from(
+    { length: assessmentProblems.length },
+    (_, index) => index + 1,
+  );
+
+  const isValidOrder =
+    orders.length === expectedOrders.length &&
+    [...orders]
+      .sort((a, b) => a - b)
+      .every((order, index) => order === expectedOrders[index]);
+
+  if (!isValidOrder) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Question order must be unique and sequential.",
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Temporary negative orders prevent unique constraint conflicts
+    for (const item of assessmentProblems) {
+      await tx.assessmentProblem.update({
+        where: {
+          id: item.id,
+        },
+        data: {
+          questionOrder: -item.questionOrder,
+        },
+      });
+    }
+
+    for (const item of payload.problems) {
+      const assessmentProblem = assessmentProblems.find(
+        (problem) => problem.problemId === item.problemId,
+      );
+
+      if (!assessmentProblem) continue;
+
+      await tx.assessmentProblem.update({
+        where: {
+          id: assessmentProblem.id,
+        },
+        data: {
+          questionOrder: item.questionOrder,
+        },
+      });
+    }
+  });
+
+  return prisma.assessmentProblem.findMany({
+    where: {
+      assessmentId: assessment.id,
+    },
+    orderBy: {
+      questionOrder: "asc",
+    },
+    include: {
+      problem: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          type: true,
+          difficulty: true,
+          marks: true,
+          options: true,
+        },
+      },
+    },
+  });
+};
+
 
 
 export const assessmentServices = {
@@ -903,4 +1070,5 @@ export const assessmentServices = {
   addProblemToAssessment,
   getAssessmentProblems,
   removeProblemFromAssessment,
+  reorderAssessmentProblems
 };

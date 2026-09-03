@@ -71,3 +71,17 @@ export const updateAssessmentValidationSchema = z
 export const addProblemValidationSchema = z.object({
   problemId: z.string().uuid("Invalid problem ID"),
 });
+
+export const reorderProblemsValidationSchema = z.object({
+  problems: z
+    .array(
+      z.object({
+        problemId: z.string().uuid("Invalid problem ID"),
+        questionOrder: z
+          .number()
+          .int()
+          .positive("Question order must be greater than 0"),
+      }),
+    )
+    .min(1, "At least one problem is required"),
+});

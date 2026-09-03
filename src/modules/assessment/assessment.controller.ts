@@ -195,6 +195,30 @@ const removeProblemFromAssessment = catchAsync(
   },
 );
 
+const reorderAssessmentProblems = catchAsync(
+  async (req: Request, res: Response) => {
+    const recruiterId = req.user?.id!;
+    const { assessmentId} = req.params;
+
+    const result = await assessmentServices.reorderAssessmentProblems(
+      recruiterId,
+      assessmentId as string,
+      req.body
+    );
+
+    sendResponse(
+      res,
+      {
+        message: "Reorder assessment successfully!",
+        data: result,
+      },
+      httpStatus.OK,
+    );
+  },
+);
+
+
+
 export const assessmentControllers = {
   createAssessment,
   getMyAssessments,
@@ -206,4 +230,5 @@ export const assessmentControllers = {
   addProblemToAssessment,
   getAssessmentProblems,
   removeProblemFromAssessment,
+  reorderAssessmentProblems
 };
