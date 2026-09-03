@@ -1,5 +1,8 @@
 import {
   AssessmentStatus,
+  AuditAction,
+  AuditEntity,
+  PaymentStatus,
   Role,
   UserStatus,
 } from "../../../generated/prisma/enums";
@@ -460,6 +463,102 @@ const getAllAssessments = async (userId: string, query: IAssessmentQuery) => {
   return updatedAssessment;
 };
 
+const publishAssessment = async (userId: string, assessmentId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { recruiter: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+    include: {
+      problems: true,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Assessment not found or you do not have permission to publish it.",
+    );
+  }
+
+  if (assessment.status !== AssessmentStatus.DRAFT) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only draft assessments can be published.",
+    );
+  }
+
+  if (assessment.problems.length === 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Assessment must contain at least one problem before publishing.",
+    );
+  }
+
+  const payment = await prisma.payment.findFirst({
+    where: {
+      assessmentId: assessment.id,
+      recruiterId: user.recruiter.id,
+      status: PaymentStatus.COMPLETED
+    },
+  });
+
+  if (!payment) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Payment is required before publishing the assessment.",
+    );
+  }
+
+  const publishedAssessment = await prisma.assessment.update({
+    where: {
+      id: assessment.id,
+    },
+    data: {
+      status: AssessmentStatus.PUBLISHED,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      action: AuditAction.PUBLISH,
+      entity: AuditEntity.ASSESSMENT,
+      entityId: assessment.id,
+      oldValue: {
+        status: assessment.status,
+      },
+      newValue: {
+        status: AssessmentStatus.PUBLISHED,
+      },
+    },
+  });
+
+  return publishedAssessment;
+};
+
 const deleteAssessment = async (userId: string, assessmentId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -529,5 +628,6 @@ export const assessmentServices = {
   getSingleAssessment,
   updateAssessment,
   getAllAssessments,
-  deleteAssessment
+  deleteAssessment,
+  publishAssessment,
 };

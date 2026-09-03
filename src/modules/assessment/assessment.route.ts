@@ -39,6 +39,12 @@ router.patch(
   assessmentControllers.updateAssessment,
 );
 
+router.patch(
+  "/:id/publish",
+  auth(Role.RECRUITER),
+  assessmentControllers.publishAssessment,
+);
+
 router.delete(
   "/:id",
   auth(Role.RECRUITER, Role.ADMIN),

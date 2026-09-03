@@ -6,7 +6,7 @@ model Problem {
   type          ProblemType
   difficulty    Difficulty   @default(MEDIUM)
   marks         Int
-  options       Json?
+  options       String[]     @default([])
   correctAnswer String?
   deletedAt     DateTime?
   createdAt     DateTime     @default(now())

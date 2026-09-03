@@ -17,6 +17,7 @@ model Assessment {
   problems    AssessmentProblem[]
   invitations Invitation[]
   attempts    Attempt[]
+  payment Payment?
 
   @@index([recruiterId])
   @@index([status])

@@ -12,6 +12,7 @@ import { candidateRoutes } from "./modules/candidate/candidate.routes";
 import { recruiterRoutes } from "./modules/recruiter/recruiter.routes";
 import { adminRoutes } from "./modules/admin/admin.route";
 import { assessmentRoutes } from "./modules/assessment/assessment.route";
+import { problemRoutes } from "./modules/problem/problem.route";
 
 const app: Application = express();
 
@@ -45,6 +46,7 @@ app.use("/api/v1/candidates", candidateRoutes);
 app.use("/api/v1/recruiters", recruiterRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/assessments", assessmentRoutes);
+app.use("/api/v1/problems", problemRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);

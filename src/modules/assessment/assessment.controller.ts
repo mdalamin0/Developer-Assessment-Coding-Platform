@@ -91,6 +91,25 @@ const updateAssessment = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+const publishAssessment = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { id } = req.params;
+
+  const result = await assessmentServices.publishAssessment(
+    userId,
+    id as string
+  );
+
+  sendResponse(
+    res,
+    {
+      message: "Assessment published successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
 const deleteAssessment = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id!;
   const { id } = req.params;
@@ -116,5 +135,6 @@ export const assessmentControllers = {
   getSingleAssessment,
   updateAssessment,
   getAllAssessments,
-  deleteAssessment
+  deleteAssessment,
+  publishAssessment,
 };
