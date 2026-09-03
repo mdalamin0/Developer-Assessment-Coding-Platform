@@ -37,6 +37,21 @@ const getMyAssessments = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+const getAllAssessments = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+
+  const result = await assessmentServices.getAllAssessments(userId, req.query);
+
+  sendResponse(
+    res,
+    {
+      message: "Assessment retrieved successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
 const getSingleAssessment = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id!;
   const { id } = req.params;
@@ -63,7 +78,7 @@ const updateAssessment = catchAsync(async (req: Request, res: Response) => {
   const result = await assessmentServices.updateAssessment(
     userId,
     id as string,
-    req.body
+    req.body,
   );
 
   sendResponse(
@@ -76,10 +91,30 @@ const updateAssessment = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+const deleteAssessment = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { id } = req.params;
+
+  const result = await assessmentServices.deleteAssessment(
+    userId,
+    id as string,
+  );
+
+  sendResponse(
+    res,
+    {
+      message: "Assessment deleted successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
 
 export const assessmentControllers = {
   createAssessment,
   getMyAssessments,
   getSingleAssessment,
   updateAssessment,
+  getAllAssessments,
+  deleteAssessment
 };

@@ -1,4 +1,8 @@
-import { AssessmentStatus, Role, UserStatus } from "../../../generated/prisma/enums";
+import {
+  AssessmentStatus,
+  Role,
+  UserStatus,
+} from "../../../generated/prisma/enums";
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import {
@@ -237,8 +241,110 @@ const getSingleAssessment = async (userId: string, assessmentId: string) => {
   return assessment;
 };
 
+const getAllAssessments = async (userId: string, query: IAssessmentQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
 
-const updateAssessment = async (
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { recruiter: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  if (user.role === Role.RECRUITER && !user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const andConditions: Prisma.AssessmentWhereInput[] = [
+    {
+      deletedAt: null,
+    },
+  ];
+
+  if (user.role === Role.RECRUITER) {
+    andConditions.push({
+      recruiterId: user.recruiter!.id,
+    });
+  }
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          description: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  if (query.status) {
+    const normalizedStatus = (
+      query.status as string
+    ).toUpperCase() as AssessmentStatus;
+
+    andConditions.push({
+      status: {
+        equals: normalizedStatus,
+      },
+    });
+  }
+
+  const assessments = await prisma.assessment.findMany({
+    where: {
+      AND: andConditions,
+    },
+    take: limit,
+    skip,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  const total = await prisma.assessment.count({
+    where: {
+      AND: andConditions,
+    },
+  });
+
+  return {
+    data: assessments,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+ const updateAssessment = async (
   userId: string,
   assessmentId: string,
   payload: IUpdateAssessmentPayload,
@@ -354,9 +460,74 @@ const updateAssessment = async (
   return updatedAssessment;
 };
 
+const deleteAssessment = async (userId: string, assessmentId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { recruiter: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  if (user.role === Role.RECRUITER && !user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      deletedAt: null,
+      ...(user.role === Role.RECRUITER
+        ? {
+            recruiterId: user.recruiter!.id,
+          }
+        : {}),
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Assessment not found or you do not have permission to delete it.",
+    );
+  }
+
+  if (
+    assessment.status === AssessmentStatus.ONGOING ||
+    assessment.status === AssessmentStatus.COMPLETED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Assessment cannot be deleted because it is already ${assessment.status.toLowerCase()}.`,
+    );
+  }
+
+  const deletedAssessment = await prisma.assessment.update({
+    where: {
+      id: assessmentId,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  return deletedAssessment;
+};
+
 export const assessmentServices = {
   createAssessment,
   getMyAssessments,
   getSingleAssessment,
   updateAssessment,
+  getAllAssessments,
+  deleteAssessment
 };

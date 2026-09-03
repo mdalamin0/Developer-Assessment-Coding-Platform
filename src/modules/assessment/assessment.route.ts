@@ -21,15 +21,28 @@ router.get(
 );
 
 router.get(
+  "/all-assessments",
+  auth(Role.RECRUITER, Role.ADMIN),
+  assessmentControllers.getAllAssessments,
+);
+
+router.get(
   "/:id",
   auth(Role.RECRUITER, Role.ADMIN),
   assessmentControllers.getSingleAssessment,
 );
 
+
 router.patch(
   "/:id",
   auth(Role.RECRUITER),
   assessmentControllers.updateAssessment,
+);
+
+router.delete(
+  "/:id",
+  auth(Role.RECRUITER, Role.ADMIN),
+  assessmentControllers.deleteAssessment,
 );
 
 export const assessmentRoutes = router;
