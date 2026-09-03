@@ -22,7 +22,64 @@ const createAssessment = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+const getMyAssessments = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+
+  const result = await assessmentServices.getMyAssessments(userId, req.query);
+
+  sendResponse(
+    res,
+    {
+      message: "Assessment retrive successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
+const getSingleAssessment = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { id } = req.params;
+
+  const result = await assessmentServices.getSingleAssessment(
+    userId,
+    id as string,
+  );
+
+  sendResponse(
+    res,
+    {
+      message: "Assessment retrieved successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
+const updateAssessment = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { id } = req.params;
+
+  const result = await assessmentServices.updateAssessment(
+    userId,
+    id as string,
+    req.body
+  );
+
+  sendResponse(
+    res,
+    {
+      message: "Assessment updated successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
 
 export const assessmentControllers = {
   createAssessment,
+  getMyAssessments,
+  getSingleAssessment,
+  updateAssessment,
 };

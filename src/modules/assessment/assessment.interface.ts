@@ -1,3 +1,6 @@
+import { Prisma } from "../../../generated/prisma/client";
+import { IQuery } from "../../interfaces";
+
 export interface ICreateAssessmentPayload {
   title: string;
   description?: string;
@@ -6,4 +9,16 @@ export interface ICreateAssessmentPayload {
   passingMarks: number;
   startAt?: string;
   endAt?: string;
+}
+
+export type IAssessmentQuery = IQuery & Prisma.AssessmentWhereInput;
+
+export interface IUpdateAssessmentPayload {
+  title?: string;
+  description?: string;
+  duration?: number;
+  totalMarks?: number;
+  passingMarks?: number;
+  startAt?: string | null;
+  endAt?: string | null;
 }

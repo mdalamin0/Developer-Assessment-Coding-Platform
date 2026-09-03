@@ -1,9 +1,15 @@
-import { UserStatus } from "../../../generated/prisma/enums";
+import { AssessmentStatus, Role, UserStatus } from "../../../generated/prisma/enums";
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
-import { ICreateAssessmentPayload } from "./assessment.interface";
+import {
+  IAssessmentQuery,
+  ICreateAssessmentPayload,
+  IUpdateAssessmentPayload,
+} from "./assessment.interface";
 import httpStatus from "http-status";
 import { isBefore, parseISO } from "date-fns";
+import { Prisma } from "../../../generated/prisma/client";
+import { isAfter } from "date-fns";
 
 const createAssessment = async (
   userId: string,
@@ -41,29 +47,27 @@ const createAssessment = async (
     );
   }
 
+  if (payload.startAt && payload.endAt) {
+    const startDate = parseISO(payload.startAt);
+    const endDate = parseISO(payload.endAt);
 
-if (payload.startAt && payload.endAt) {
-  const startDate = parseISO(payload.startAt);
-  const endDate = parseISO(payload.endAt);
-  
-  if (
-    isBefore(endDate, startDate) ||
-    endDate.getTime() === startDate.getTime()
-  ) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "End time must be strictly greater than start time.",
-    );
+    if (
+      isBefore(endDate, startDate) ||
+      endDate.getTime() === startDate.getTime()
+    ) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "End time must be strictly greater than start time.",
+      );
+    }
+
+    if (isBefore(startDate, new Date())) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Start time cannot be in the past.",
+      );
+    }
   }
-
-
-  if (isBefore(startDate, new Date())) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Start time cannot be in the past.",
-    );
-  }
-}
 
   const assessment = await prisma.assessment.create({
     data: {
@@ -81,8 +85,278 @@ if (payload.startAt && payload.endAt) {
   return assessment;
 };
 
+const getMyAssessments = async (userId: string, query: IAssessmentQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const andConditions: Prisma.AssessmentWhereInput[] = [
+    {
+      recruiterId: user.recruiter.id,
+    },
+    {
+      deletedAt: null,
+    },
+  ];
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          description: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  if (query.status) {
+    const normalizedStatus = (
+      query.status as string
+    ).toUpperCase() as AssessmentStatus;
+
+    andConditions.push({
+      status: {
+        equals: normalizedStatus,
+      },
+    });
+  }
+
+  const assessments = await prisma.assessment.findMany({
+    where: {
+      AND: andConditions,
+    },
+    take: limit,
+    skip,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  const total = await prisma.assessment.count({
+    where: {
+      AND: andConditions,
+    },
+  });
+
+  return {
+    data: assessments,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+const getSingleAssessment = async (userId: string, assessmentId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { recruiter: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      deletedAt: null,
+      ...(user.role === Role.RECRUITER
+        ? { recruiterId: user.recruiter?.id }
+        : {}),
+    },
+    include: {
+      recruiter: true,
+      problems: {
+        include: {
+          problem: true,
+        },
+        orderBy: {
+          questionOrder: "asc",
+        },
+      },
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Assessment not found or you do not have permission to view it.",
+    );
+  }
+
+  return assessment;
+};
+
+
+const updateAssessment = async (
+  userId: string,
+  assessmentId: string,
+  payload: IUpdateAssessmentPayload,
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { recruiter: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      id: assessmentId,
+      recruiterId: user.recruiter.id,
+      deletedAt: null,
+    },
+  });
+
+  if (!assessment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Assessment not found or you do not have permission to update it.",
+    );
+  }
+
+  if (
+    assessment.status === AssessmentStatus.ONGOING ||
+    assessment.status === AssessmentStatus.COMPLETED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Assessment cannot be updated because it is already ${assessment.status.toLowerCase()}.`,
+    );
+  }
+
+  const totalMarks = payload.totalMarks ?? assessment.totalMarks;
+
+  const passingMarks = payload.passingMarks ?? assessment.passingMarks;
+
+  if (passingMarks > totalMarks) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Passing marks cannot be greater than total marks.",
+    );
+  }
+
+  const startAt =
+    payload.startAt === undefined
+      ? assessment.startAt
+      : payload.startAt === null
+        ? null
+        : new Date(payload.startAt);
+
+  const endAt =
+    payload.endAt === undefined
+      ? assessment.endAt
+      : payload.endAt === null
+        ? null
+        : new Date(payload.endAt);
+
+  if (startAt && endAt && !isAfter(endAt, startAt)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "End time must be greater than start time.",
+    );
+  }
+
+  const updatedAssessment = await prisma.assessment.update({
+    where: {
+      id: assessmentId,
+    },
+    data: {
+      ...(payload.title !== undefined && {
+        title: payload.title,
+      }),
+
+      ...(payload.description !== undefined && {
+        description: payload.description,
+      }),
+
+      ...(payload.duration !== undefined && {
+        duration: payload.duration,
+      }),
+
+      ...(payload.totalMarks !== undefined && {
+        totalMarks: payload.totalMarks,
+      }),
+
+      ...(payload.passingMarks !== undefined && {
+        passingMarks: payload.passingMarks,
+      }),
+
+      startAt,
+      endAt,
+    },
+  });
+
+  return updatedAssessment;
+};
 
 export const assessmentServices = {
   createAssessment,
+  getMyAssessments,
+  getSingleAssessment,
+  updateAssessment,
 };

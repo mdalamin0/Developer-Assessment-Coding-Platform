@@ -14,5 +14,22 @@ router.post(
   assessmentControllers.createAssessment,
 );
 
+router.get(
+  "/my-assessments",
+  auth(Role.RECRUITER),
+  assessmentControllers.getMyAssessments,
+);
+
+router.get(
+  "/:id",
+  auth(Role.RECRUITER, Role.ADMIN),
+  assessmentControllers.getSingleAssessment,
+);
+
+router.patch(
+  "/:id",
+  auth(Role.RECRUITER),
+  assessmentControllers.updateAssessment,
+);
 
 export const assessmentRoutes = router;
