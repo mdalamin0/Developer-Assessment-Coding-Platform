@@ -12,4 +12,14 @@ export interface ICreateProblemPayload {
   correctAnswer?: string;
 }
 
+export interface IUpdateProblemPayload {
+  title?: string;
+  description?: string;
+  type?: ProblemType;
+  difficulty?: Difficulty;
+  marks?: number;
+  options?: string[];
+  correctAnswer?: string | null;
+}
+
 export type IProblemQuery = IQuery & Prisma.ProblemWhereInput;
