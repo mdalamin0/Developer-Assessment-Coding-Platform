@@ -7,3 +7,7 @@ export interface ICreateInvitationPayload {
 }
 
 export type IInvitationQuery  = IQuery & Prisma.InvitationWhereInput;
+
+export interface IInvitationResponsePayload {
+  status: "ACCEPTED" | "DECLINED";
+}

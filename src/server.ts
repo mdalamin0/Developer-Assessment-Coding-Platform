@@ -1,5 +1,6 @@
 import app from "./app";
 import config from "./config";
+import { updateAssessmentStatus } from "./lib/cron";
 import { transporter } from "./lib/nodemailer";
 import { prisma } from "./lib/prisma";
 import { redisClient } from "./lib/redis";
@@ -16,6 +17,8 @@ const main = async () => {
     console.log("Nodemail connected successfully.");
 
     await seedTesterAdmin();
+
+    await updateAssessmentStatus();
     
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}`);

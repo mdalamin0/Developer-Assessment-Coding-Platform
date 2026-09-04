@@ -24,11 +24,10 @@ const createInvitation = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
-
-const getMyInvitations = catchAsync(async (req: Request, res: Response) => {
+const getRecruiterMyInvitations = catchAsync(async (req: Request, res: Response) => {
   const recruiterId = req.user?.id!;
 
-  const result = await invitationServices.getMyInvitations(
+  const result = await invitationServices.getRecruiterMyInvitations(
     recruiterId,
     req.query,
   );
@@ -43,8 +42,37 @@ const getMyInvitations = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+const respondToInvitation = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const {invitationId} = req.params;
+  const result = await invitationServices.respondToInvitation(
+    userId,
+    invitationId as string,
+    req.body,
+  );
+
+  sendResponse(res, {
+    message: `Invitation ${req.body.status.toLowerCase()} successfully.`,
+    data: result,
+  });
+});
+
+const getCandidateMyInvitations = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const result = await invitationServices.getCandidateMyInvitations(
+    userId,
+    req.query,
+  );
+
+  sendResponse(res, {
+    message: "Invitations retrieved successfully!",
+    data: result,
+  });
+});
 
 export const invitationControllers = {
   createInvitation,
-  getMyInvitations
+  getRecruiterMyInvitations,
+  respondToInvitation,
+  getCandidateMyInvitations,
 }
