@@ -218,6 +218,30 @@ const reorderAssessmentProblems = catchAsync(
 );
 
 
+// candidate assessment controllers
+const getAvailableAssessments = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id!;
+    const query = req.query;
+
+    const result = await assessmentServices.getAvailableAssessments(
+      userId,
+      query
+    );
+
+    sendResponse(
+      res,
+      {
+        message: "Available assessments retrieved successfully!",
+        data: result,
+      },
+    );
+  },
+);
+
+
+
+
 
 export const assessmentControllers = {
   createAssessment,
@@ -230,5 +254,6 @@ export const assessmentControllers = {
   addProblemToAssessment,
   getAssessmentProblems,
   removeProblemFromAssessment,
-  reorderAssessmentProblems
+  reorderAssessmentProblems,
+  getAvailableAssessments,
 };

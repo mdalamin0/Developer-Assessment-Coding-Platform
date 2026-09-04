@@ -2,6 +2,7 @@ import {
   AssessmentStatus,
   AuditAction,
   AuditEntity,
+  InvitationStatus,
   PaymentStatus,
   Role,
   UserStatus,
@@ -19,6 +20,7 @@ import httpStatus from "http-status";
 import { add, isBefore, parseISO } from "date-fns";
 import { Prisma } from "../../../generated/prisma/client";
 import { isAfter } from "date-fns";
+import { IQuery } from "../../interfaces";
 
 const createAssessment = async (
   userId: string,
@@ -625,7 +627,6 @@ const deleteAssessment = async (userId: string, assessmentId: string) => {
 };
 
 
-
 // Assessment-problem services 
 const addProblemToAssessment = async (
   userId: string,
@@ -1057,6 +1058,136 @@ const reorderAssessmentProblems = async (
   });
 };
 
+// services for candidate assessment 
+const getAvailableAssessments = async (
+  userId: string,
+  query: IQuery,
+) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder || "desc";
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Candidate not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Candidate is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Candidate is deleted.");
+  }
+
+  const andConditions: Prisma.AssessmentWhereInput[] = [
+    {
+      status: AssessmentStatus.PUBLISHED,
+    },
+    {
+      deletedAt: null,
+    },
+    {
+      invitations: {
+        some: {
+          candidateId: userId,
+          status: InvitationStatus.PENDING,
+        },
+      },
+    },
+  ];
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          description: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  
+
+  const assessments = await prisma.assessment.findMany({
+    where: {
+      AND: andConditions,
+    },
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      duration: true,
+      totalMarks: true,
+      passingMarks: true,
+      status: true,
+      startAt: true,
+      endAt: true,
+      recruiter: {
+        select: {
+          companyName: true,
+          designation: true,
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      invitations: {
+        where: {
+          candidateId: userId,
+        },
+        select: {
+          id: true,
+          status: true,
+          invitedAt: true,
+          expiresAt: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.assessment.count({
+    where: {
+      AND: andConditions,
+    },
+  });
+
+  return {
+    data: assessments,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+
 
 
 export const assessmentServices = {
@@ -1070,5 +1201,6 @@ export const assessmentServices = {
   addProblemToAssessment,
   getAssessmentProblems,
   removeProblemFromAssessment,
-  reorderAssessmentProblems
+  reorderAssessmentProblems,
+  getAvailableAssessments,
 };

@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { Role } from "../../../generated/prisma/enums";
 import validateRequest from "../../middlewares/validateRequest";
-import { addProblemValidationSchema, createAssessmentValidationSchema } from "./assessment.validation";
+import {
+  addProblemValidationSchema,
+  createAssessmentValidationSchema,
+} from "./assessment.validation";
 import { assessmentControllers } from "./assessment.controller";
 import { auth } from "../../middlewares/auth";
 
@@ -31,7 +34,6 @@ router.get(
   auth(Role.RECRUITER, Role.ADMIN),
   assessmentControllers.getSingleAssessment,
 );
-
 
 router.patch(
   "/:id",
@@ -76,5 +78,14 @@ router.patch(
   auth(Role.RECRUITER),
   assessmentControllers.reorderAssessmentProblems,
 );
+
+
+router.get(
+  "/candidate/available-assessments",
+  auth(Role.CANDIDATE),
+  assessmentControllers.getAvailableAssessments,
+);
+
+
 
 export const assessmentRoutes = router;

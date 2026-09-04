@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { prisma } from "./prisma";
-import { AssessmentStatus } from "../../generated/prisma/enums";
+import { AssessmentStatus, InvitationStatus } from "../../generated/prisma/enums";
 
 export const updateAssessmentStatus = async () => {
   cron.schedule("* * * * *", async () => {
@@ -33,6 +33,19 @@ export const updateAssessmentStatus = async () => {
         },
         data: {
           status: AssessmentStatus.COMPLETED,
+        },
+      });
+
+      // invitation PENDING → EXPIRED
+      await prisma.invitation.updateMany({
+        where: {
+          status: InvitationStatus.PENDING,
+          expiresAt: {
+            lte: now,
+          },
+        },
+        data: {
+          status: InvitationStatus.EXPIRED,
         },
       });
     } catch (error) {
