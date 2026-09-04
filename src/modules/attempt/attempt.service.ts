@@ -34,28 +34,6 @@ const startAssessment = async (userId: string, assessmentId: string) => {
         },
       },
     },
-    include: {
-      problems: {
-        orderBy: {
-          questionOrder: "asc",
-        },
-        select: {
-          problem: {
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              type: true,
-              difficulty: true,
-              marks: true,
-              options: true,
-            },
-          },
-          questionOrder: true,
-          marks: true,
-        },
-      },
-    },
   });
 
   if (!assessment) {
@@ -132,12 +110,161 @@ const startAssessment = async (userId: string, assessmentId: string) => {
       passingMarks: assessment.passingMarks,
       startAt: assessment.startAt,
       endAt: assessment.endAt,
-      problems: assessment.problems,
     },
+  };
+};
+
+const getMySingleAttempt = async (userId: string, attemptId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Candidate not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Candidate is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Candidate is deleted.");
+  }
+
+  const attempt = await prisma.attempt.findFirst({
+    where: {
+      id: attemptId,
+      candidateId: userId,
+    },
+    select: {
+      id: true,
+      assessmentId: true,
+      candidateId: true,
+      startedAt: true,
+      submittedAt: true,
+      status: true,
+      assessment: {
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          totalMarks: true,
+          passingMarks: true,
+          startAt: true,
+          endAt: true,
+        },
+      },
+      _count: {
+        select: {
+          answers: true,
+          submissions: true,
+        },
+      },
+    },
+  });
+
+  if (!attempt) {
+    throw new AppError(httpStatus.NOT_FOUND, "Attempt not found.");
+  }
+
+  return attempt;
+};
+
+const getAttemptQuestions = async (userId: string, attemptId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Candidate not found.");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Candidate is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Candidate is deleted.");
+  }
+
+  const attempt = await prisma.attempt.findFirst({
+    where: {
+      id: attemptId,
+      candidateId: userId,
+    },
+    select: {
+      id: true,
+      assessmentId: true,
+      status: true,
+
+      assessment: {
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          totalMarks: true,
+          passingMarks: true,
+          startAt: true,
+          endAt: true,
+
+          problems: {
+            orderBy: {
+              questionOrder: "asc",
+            },
+            select: {
+              questionOrder: true,
+              marks: true,
+
+              problem: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  type: true,
+                  difficulty: true,
+                  marks: true,
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!attempt) {
+    throw new AppError(httpStatus.NOT_FOUND, "Attempt not found.");
+  }
+
+  if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This attempt is no longer in progress.",
+    );
+  }
+
+  return {
+    attemptId: attempt.id,
+    assessment: {
+      id: attempt.assessment.id,
+      title: attempt.assessment.title,
+      duration: attempt.assessment.duration,
+      totalMarks: attempt.assessment.totalMarks,
+      passingMarks: attempt.assessment.passingMarks,
+      startAt: attempt.assessment.startAt,
+      endAt: attempt.assessment.endAt,
+    },
+    questions: attempt.assessment.problems,
   };
 };
 
 
 export const attemptServices = {
   startAssessment,
+  getMySingleAttempt,
+  getAttemptQuestions,
 };
+

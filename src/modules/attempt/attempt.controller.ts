@@ -19,6 +19,38 @@ const startAssessment = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMySingleAttempt = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { attemptId } = req.params;
+
+  const result = await attemptServices.getMySingleAttempt(
+    userId,
+    attemptId as string,
+  );
+
+  sendResponse(res, {
+    message: "Attempt retrieved successfully!",
+    data: result,
+  });
+});
+
+const getAttemptQuestions = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { attemptId } = req.params;
+
+  const result = await attemptServices.getAttemptQuestions(
+    userId,
+    attemptId as string,
+  );
+
+  sendResponse(res, {
+    message: "Attempt questions retrieved successfully!",
+    data: result,
+  });
+});
+
 export const attemptControllers = {
   startAssessment,
+  getMySingleAttempt,
+  getAttemptQuestions,
 };

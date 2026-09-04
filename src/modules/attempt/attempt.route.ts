@@ -12,4 +12,16 @@ router.post(
   attemptControllers.startAssessment
 );
 
+router.get(
+  "/:attemptId",
+  auth(Role.CANDIDATE),
+  attemptControllers.getMySingleAttempt
+);
+
+router.get(
+  "/:attemptId/questions",
+  auth(Role.CANDIDATE),
+  attemptControllers.getAttemptQuestions
+);
+
 export const attemptRoutes = router;
