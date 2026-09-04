@@ -4,7 +4,7 @@ model Attempt {
   candidateId  String
   status       AttemptStatus @default(IN_PROGRESS)
   startedAt    DateTime      @default(now())
-  expiresAt    DateTime?
+  expiresAt    DateTime
   submittedAt  DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

@@ -1,6 +1,6 @@
 import app from "./app";
 import config from "./config";
-import { updateAssessmentStatus } from "./lib/cron";
+import { autoSubmitExpiredAttempts, updateAssessmentStatus } from "./lib/cron";
 import { transporter } from "./lib/nodemailer";
 import { prisma } from "./lib/prisma";
 import { redisClient } from "./lib/redis";
@@ -19,6 +19,7 @@ const main = async () => {
     await seedTesterAdmin();
 
     await updateAssessmentStatus();
+    await autoSubmitExpiredAttempts();
     
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}`);
