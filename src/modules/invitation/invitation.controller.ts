@@ -25,6 +25,26 @@ const createInvitation = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+const getMyInvitations = catchAsync(async (req: Request, res: Response) => {
+  const recruiterId = req.user?.id!;
+
+  const result = await invitationServices.getMyInvitations(
+    recruiterId,
+    req.query,
+  );
+
+  sendResponse(
+    res,
+    {
+      message: "Invitations retrieved successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
+
 export const invitationControllers = {
-  createInvitation
+  createInvitation,
+  getMyInvitations
 }

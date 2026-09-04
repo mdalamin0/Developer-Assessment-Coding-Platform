@@ -33,6 +33,20 @@ const getMyProblems = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+const getAllProblems = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const result = await problemServices.getAllProblems(userId, req.query);
+
+  sendResponse(
+    res,
+    {
+      message: "Problems retrieved successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
 const getSingleProblem = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id!;
   const problemId = req.params.id as string;
@@ -93,4 +107,5 @@ export const problemControllers = {
   getSingleProblem,
   updateProblem,
   deleteProblem,
+  getAllProblems,
 };

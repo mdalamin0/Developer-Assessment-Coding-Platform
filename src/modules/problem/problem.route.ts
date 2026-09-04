@@ -3,7 +3,10 @@ import { problemControllers } from "./problem.controller";
 import { auth } from "../../middlewares/auth";
 import { Role } from "../../../generated/prisma/enums";
 import validateRequest from "../../middlewares/validateRequest";
-import { createProblemValidationSchema, updateProblemValidationSchema } from "./problem.validation";
+import {
+  createProblemValidationSchema,
+  updateProblemValidationSchema,
+} from "./problem.validation";
 
 const router = Router();
 
@@ -18,6 +21,14 @@ router.get(
   "/my-problems",
   auth(Role.RECRUITER),
   problemControllers.getMyProblems,
+);
+
+router.get(
+  "/all-problems",
+  auth(
+    Role.RECRUITER, Role.ADMIN,
+  ),
+  problemControllers.getAllProblems,
 );
 
 router.get(

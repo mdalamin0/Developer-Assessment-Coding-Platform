@@ -1,13 +1,21 @@
-import { AssessmentStatus, AuditAction, AuditEntity, Role, UserStatus } from "../../../generated/prisma/enums";
+import { Prisma } from "../../../generated/prisma/client";
+import {
+  AssessmentStatus,
+  AuditAction,
+  AuditEntity,
+  InvitationStatus,
+  Role,
+  UserStatus,
+} from "../../../generated/prisma/enums";
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import httpStatus from "http-status";
-
+import { ICreateInvitationPayload, IInvitationQuery } from "./invitation.interface";
 
 const createInvitation = async (
   userId: string,
   assessmentId: string,
-  payload: any,
+  payload: ICreateInvitationPayload,
 ) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -95,7 +103,6 @@ const createInvitation = async (
           id: true,
           name: true,
           email: true,
-          image: true,
         },
       },
     },
@@ -117,7 +124,141 @@ const createInvitation = async (
   return invitation;
 };
 
+const getMyInvitations = async (userId: string, query: IInvitationQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder || "desc";
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const andConditions: Prisma.InvitationWhereInput[] = [
+    {
+      assessment: {
+        recruiterId: user.recruiter.id,
+        deletedAt: null,
+      },
+    },
+  ];
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          candidate: {
+            name: {
+              contains: query.searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          candidate: {
+            email: {
+              contains: query.searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          assessment: {
+            title: {
+              contains: query.searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (query.status) {
+    const normalizedStatus = (
+      query.status as string
+    ).toUpperCase() as InvitationStatus;
+
+    andConditions.push({
+      status: normalizedStatus,
+    });
+  }
+
+  const invitations = await prisma.invitation.findMany({
+    where: {
+      AND: andConditions,
+    },
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      candidate: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          status: true,
+        },
+      },
+      assessment: {
+        select: {
+          id: true,
+          title: true,
+          duration: true,
+          totalMarks: true,
+          passingMarks: true,
+          status: true,
+          startAt: true,
+          endAt: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.invitation.count({
+    where: {
+      AND: andConditions,
+    },
+  });
+
+  return {
+    data: invitations,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
 
 export const invitationServices = {
-  createInvitation
-}
+  createInvitation,
+  getMyInvitations,
+};
