@@ -4,9 +4,13 @@ import sendResponse from "../../utils/sendResponse";
 import { paymentServices } from "./payment.service";
 import httpStatus from "http-status";
 
-const createPyament = catchAsync(
+const createPayment = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const result = await paymentServices.createPyament();
+    const userId = req.user?.id!;
+    const result = await paymentServices.createPayment(
+      userId,
+      req.body.assessmentId,
+    );
 
     sendResponse(
       res,
@@ -19,13 +23,13 @@ const createPyament = catchAsync(
   },
 );
 
-const bkashPyamentCallback = catchAsync(
+const bkashPaymentCallback = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { executedPaymentResult, redirectUrl } =
-      await paymentServices.bkashPyamentCallback(req.query);
+    const { redirectUrl } =
+      await paymentServices.bkashPaymentCallback(req.query);
 
-      console.log(executedPaymentResult);
-      res.redirect(redirectUrl)
+    
+    res.redirect(redirectUrl);
 
     // sendResponse(
     //   res,
@@ -39,6 +43,6 @@ const bkashPyamentCallback = catchAsync(
 );
 
 export const paymentControllers = {
-  createPyament,
-  bkashPyamentCallback,
+  createPayment,
+  bkashPaymentCallback,
 };

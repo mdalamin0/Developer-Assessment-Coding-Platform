@@ -1,20 +1,28 @@
 model Payment {
-  id            String        @id @default(uuid())
+  id            String         @id @default(uuid())
   recruiterId   String
-  assessmentId  String        @unique
-  amount        Decimal
+  assessmentId  String         @unique
+  amount        Decimal        @db.Decimal(10, 2)
+  currency      String         @default("BDT")
   transactionId String?        @unique
   paymentMethod PaymentMethod?
-  status        PaymentStatus @default(PENDING)
-  invoiceId     String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  status        PaymentStatus  @default(PENDING)
+
+  merchantInvoiceNumber String @unique 
+
+  bkashPaymentId String? @unique
+  payerReference String? 
+  paidAt         String?
+
+  gatewayResponse Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   recruiter  Recruiter  @relation(fields: [recruiterId], references: [id])
   assessment Assessment @relation(fields: [assessmentId], references: [id])
 
   @@index([recruiterId])
   @@index([assessmentId])
-
   @@map("payments")
 }

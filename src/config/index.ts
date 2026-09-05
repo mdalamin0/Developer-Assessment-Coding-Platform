@@ -39,4 +39,5 @@ export default {
   tester_admin_name: process.env.TESTER_ADMIN_NAME!,
   tester_admin_email: process.env.TESTER_ADMIN_EMAIL!,
   tester_admin_password: process.env.TESTER_ADMIN_PASSWORD!,
+  assessment_publish_fee: Number(process.env.ASSESSMENT_PUBLISH_FEE),
 };

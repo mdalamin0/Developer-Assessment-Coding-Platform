@@ -56,6 +56,13 @@ const createInvitation = async (
     throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
   }
 
+  if(assessment.status === AssessmentStatus.DRAFT){
+     throw new AppError(
+       httpStatus.BAD_REQUEST,
+       "Draft assessment can not be an invite.",
+     );
+  }
+
   if (
     assessment.status === AssessmentStatus.ONGOING ||
     assessment.status === AssessmentStatus.COMPLETED ||
