@@ -17,8 +17,12 @@ import { invitationRoutes } from "./modules/invitation/invitation.route";
 import { attemptRoutes } from "./modules/attempt/attempt.route";
 import { answerRoutes } from "./modules/answer/answer.route";
 import { resultRoutes } from "./modules/result/result.route";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 const app: Application = express();
+
+app.use(helmet());
 
 app.use(
   cors({
@@ -28,6 +32,13 @@ app.use(
 );
 
 app.use(express.json());
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
 
 app.use(
   urlencoded({
@@ -42,6 +53,8 @@ app.get("/", (req: Request, res: Response) => {
     message: "Developer Assessment $ Coding Platfrom server is running successfully!",
   });
 });
+
+app.use("/api", apiLimiter);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);

@@ -1,7 +1,7 @@
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import httpStatus from "http-status";
-import { AdminUpdatePayload, IUserQuery } from "./admin.interface";
+import { AdminUpdatePayload, IAuditLogQuery, IUserQuery } from "./admin.interface";
 import { Prisma } from "../../../generated/prisma/client";
 import { AuditAction, AuditEntity, Role, UserStatus } from "../../../generated/prisma/enums";
 
@@ -38,6 +38,11 @@ const getAllUsers = async (query: IUserQuery) => {
   const andConditions: Prisma.UserWhereInput[] = [
     {
       deletedAt: null,
+    },
+    {
+      role: {
+        in: [Role.CANDIDATE, Role.RECRUITER],
+      },
     },
   ];
 
@@ -102,9 +107,51 @@ const getAllUsers = async (query: IUserQuery) => {
       emailVerified: true,
       createdAt: true,
       updatedAt: true,
-      candidate: true,
-      recruiter: true,
+
+      candidate: {
+        select: {
+          id: true,
+          contactNumber: true,
+          bio: true,
+          resumeUrl: true,
+          resumePublicId: true,
+          skills: true,
+          experience: true,
+          githubUrl: true,
+          linkedinUrl: true,
+        },
+      },
+
+      recruiter: {
+        select: {
+          id: true,
+          companyName: true,
+          companyWebsite: true,
+          companyDescription: true,
+          designation: true,
+        },
+      },
     },
+  });
+
+  const formattedUsers = users.map((user) => {
+    const { candidate, recruiter, ...userData } = user;
+
+    if (user.role === Role.CANDIDATE) {
+      return {
+        ...userData,
+        candidate,
+      };
+    }
+
+    if (user.role === Role.RECRUITER) {
+      return {
+        ...userData,
+        recruiter,
+      };
+    }
+
+    return userData;
   });
 
   const total = await prisma.user.count({
@@ -114,7 +161,7 @@ const getAllUsers = async (query: IUserQuery) => {
   });
 
   return {
-    data: users,
+    data: formattedUsers,
     meta: {
       page,
       limit,
@@ -179,9 +226,111 @@ const updateUserStatus = async (userId: string, status: UserStatus) => {
   return updatedUser;
 };
 
+const getAuditLogs = async (query: IAuditLogQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+
+  const andConditions: Prisma.AuditLogWhereInput[] = [];
+
+  if (query.searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          entityId: {
+            contains: query.searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          user: {
+            name: {
+              contains: query.searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          user: {
+            email: {
+              contains: query.searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (query.action) {
+    const normalizedAction = (
+      query.action as string
+    ).toUpperCase() as AuditAction;
+
+    andConditions.push({
+      action: normalizedAction,
+    });
+  }
+
+  if (query.entity) {
+    const normalizedEntity = (
+      query.entity as string
+    ).toUpperCase() as AuditEntity;
+
+    andConditions.push({
+      entity: normalizedEntity,
+    });
+  }
+
+  if (query.userId) {
+    andConditions.push({
+      userId: query.userId as string,
+    });
+  }
+
+  const logs = await prisma.auditLog.findMany({
+    where: {
+      AND: andConditions,
+    },
+    take: limit,
+    skip,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.auditLog.count({
+    where: {
+      AND: andConditions,
+    },
+  });
+
+  return {
+    data: logs,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
 
 export const adminServices = {
   updateAdminProfile,
   getAllUsers,
-  updateUserStatus
+  updateUserStatus,
+  getAuditLogs
 };

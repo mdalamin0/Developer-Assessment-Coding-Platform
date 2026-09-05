@@ -7,3 +7,4 @@ export interface AdminUpdatePayload {
 
 
 export type IUserQuery = IQuery & Prisma.UserWhereInput;
+export type IAuditLogQuery = IQuery & Prisma.AuditLogWhereInput;

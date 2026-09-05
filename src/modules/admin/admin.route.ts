@@ -27,4 +27,10 @@ router.patch(
   adminControllers.updateUserStatus,
 );
 
+router.get(
+  "/audit-logs",
+  auth(Role.ADMIN),
+  adminControllers.getAuditLogs,
+);
+
 export const adminRoutes = router;

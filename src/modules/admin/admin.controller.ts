@@ -41,8 +41,20 @@ const updateUserStatus = catchAsync(
   },
 );
 
+const getAuditLogs = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await adminServices.getAuditLogs(req.query);
+
+    sendResponse(res, {
+      message: "Audit Logs Retrive Successfully.",
+      data: result,
+    });
+  },
+);
+
 export const adminControllers = {
   updateAdminProfile,
   getAllUsers,
   updateUserStatus,
+  getAuditLogs
 };
