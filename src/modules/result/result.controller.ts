@@ -48,8 +48,20 @@ const getAssessmentResults = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSingleResult = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const { resultId } = req.params;
+  const result = await resultService.getSingleResult(userId, resultId as string);
+
+  sendResponse(res, {
+    message: "Result retrieved successfully.",
+    data: result,
+  });
+});
+
 export const resultControllers = {
   getAttemptResult,
   getMyResults,
   getAssessmentResults,
+  getSingleResult
 };

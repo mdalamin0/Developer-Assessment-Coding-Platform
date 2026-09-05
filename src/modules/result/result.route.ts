@@ -19,5 +19,11 @@ router.get(
   resultControllers.getAssessmentResults,
 );
 
+router.get(
+  "/recruiter/:resultId",
+  auth(Role.RECRUITER),
+  resultControllers.getSingleResult,
+);
+
 
 export const resultRoutes = router;

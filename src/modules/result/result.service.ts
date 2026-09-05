@@ -297,8 +297,81 @@ const getAssessmentResults = async (
   };
 };
 
+const getSingleResult = async (userId: string, resultId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+  const result = await prisma.result.findFirst({
+    where: {
+      id: resultId,
+      attempt: {
+        assessment: {
+          recruiterId: user.recruiter.id,
+          deletedAt: null,
+        },
+      },
+    },
+    include: {
+      attempt: {
+        select: {
+          id: true,
+          startedAt: true,
+          submittedAt: true,
+          status: true,
+          candidate: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          assessment: {
+            select: {
+              id: true,
+              title: true,
+              totalMarks: true,
+              passingMarks: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Result not found.");
+  }
+
+  return result;
+};
+
 export const resultService = {
   getAttemptResult,
   getMyResults,
-  getAssessmentResults
+  getAssessmentResults,
+  getSingleResult
 };
+
