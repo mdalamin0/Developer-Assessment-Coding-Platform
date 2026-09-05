@@ -16,6 +16,7 @@ import { problemRoutes } from "./modules/problem/problem.route";
 import { invitationRoutes } from "./modules/invitation/invitation.route";
 import { attemptRoutes } from "./modules/attempt/attempt.route";
 import { answerRoutes } from "./modules/answer/answer.route";
+import { resultRoutes } from "./modules/result/result.route";
 
 const app: Application = express();
 
@@ -53,6 +54,7 @@ app.use("/api/v1/problems", problemRoutes);
 app.use("/api/v1/invitations", invitationRoutes);
 app.use("/api/v1/attempts", attemptRoutes); 
 app.use("/api/v1/answers", answerRoutes); 
+app.use("/api/v1/results", resultRoutes); 
 
 app.use(notFound);
 app.use(globalErrorHandler);
