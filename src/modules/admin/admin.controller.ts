@@ -8,10 +8,7 @@ const updateAdminProfile = catchAsync(
     const userId = req.user?.id;
     console.log(req.user, "user");
     const payload = req.body ? req.body : {};
-    const result =  await adminServices.updateAdminProfile(
-      userId!,
-      payload,
-    );
+    const result = await adminServices.updateAdminProfile(userId!, payload);
 
     sendResponse(res, {
       message: "Admin profile updated successfully.",
@@ -20,6 +17,32 @@ const updateAdminProfile = catchAsync(
   },
 );
 
+const getAllUsers = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await adminServices.getAllUsers(req.query);
+
+    sendResponse(res, {
+      message: "All users retrive successfully.",
+      data: result,
+    });
+  },
+);
+
+const updateUserStatus = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const result = await adminServices.updateUserStatus(id as string, status);
+
+    sendResponse(res, {
+      message: "User status updated successfully.",
+      data: result,
+    });
+  },
+);
+
 export const adminControllers = {
   updateAdminProfile,
+  getAllUsers,
+  updateUserStatus,
 };

@@ -15,4 +15,16 @@ router.patch(
   adminControllers.updateAdminProfile,
 );
 
+router.get(
+  "/all-users",
+  auth(Role.ADMIN),
+  adminControllers.getAllUsers,
+);
+
+router.patch(
+  "/users/:id",
+  auth(Role.ADMIN),
+  adminControllers.updateUserStatus,
+);
+
 export const adminRoutes = router;
