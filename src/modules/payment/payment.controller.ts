@@ -23,6 +23,25 @@ const createPayment = catchAsync(
   },
 );
 
+const retryPayment = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id!;
+    const result = await paymentServices.retryPayment(
+      userId,
+      req.body.assessmentId,
+    );
+
+    sendResponse(
+      res,
+      {
+        message: "Payment created successfully.",
+        data: result,
+      },
+      httpStatus.CREATED,
+    );
+  },
+);
+
 const bkashPaymentCallback = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { redirectUrl } =
@@ -45,4 +64,5 @@ const bkashPaymentCallback = catchAsync(
 export const paymentControllers = {
   createPayment,
   bkashPaymentCallback,
+  retryPayment
 };

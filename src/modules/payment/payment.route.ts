@@ -10,6 +10,13 @@ router.post(
   auth(Role.RECRUITER),
   paymentControllers.createPayment,
 );
+
+router.post(
+  "/retry-payment",
+  auth(Role.RECRUITER),
+  paymentControllers.retryPayment,
+);
+
 router.get("/bkash-payment/callback", paymentControllers.bkashPaymentCallback);
 
 export const paymentRoutes = router;
