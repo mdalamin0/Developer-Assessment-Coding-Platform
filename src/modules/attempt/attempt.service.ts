@@ -9,10 +9,10 @@ import {
   InvitationStatus,
   UserStatus,
   ProblemType,
+  ResultStatus,
 } from "../../../generated/prisma/enums";
 import { ISubmitAnswerPayload } from "./attempt.interface";
 import { isAfter, isEqual } from "date-fns";
-
 
 const startAssessment = async (userId: string, assessmentId: string) => {
   const user = await prisma.user.findUnique({
@@ -284,7 +284,6 @@ const getAttemptQuestions = async (userId: string, attemptId: string) => {
   };
 };
 
-
 const submitAnswer = async (
   userId: string,
   attemptId: string,
@@ -519,6 +518,8 @@ const submitAssessment = async (userId: string, attemptId: string) => {
           id: true,
           status: true,
           endAt: true,
+          totalMarks: true,
+          passingMarks: true,
         },
       },
     },
@@ -537,108 +538,36 @@ const submitAssessment = async (userId: string, attemptId: string) => {
 
   const now = new Date();
 
-  // If candidate submits after attempt duration
+  let submitReason: "TIME_EXPIRED" | "ASSESSMENT_ENDED" | "MANUAL_SUBMIT" =
+    "MANUAL_SUBMIT";
+
+  // Attempt duration expired
   if (isAfter(now, attempt.expiresAt) || isEqual(now, attempt.expiresAt)) {
-    const submittedAttempt = await prisma.$transaction(async (tx) => {
-      const updatedAttempt = await tx.attempt.update({
-        where: {
-          id: attempt.id,
-        },
-        data: {
-          status: AttemptStatus.SUBMITTED,
-          submittedAt: now,
-        },
-        select: {
-          id: true,
-          assessmentId: true,
-          candidateId: true,
-          startedAt: true,
-          expiresAt: true,
-          submittedAt: true,
-          status: true,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          userId,
-          action: AuditAction.SUBMIT,
-          entity: AuditEntity.ATTEMPT,
-          entityId: attempt.id,
-          oldValue: {
-            status: AttemptStatus.IN_PROGRESS,
-          },
-          newValue: {
-            status: AttemptStatus.SUBMITTED,
-            reason: "TIME_EXPIRED",
-          },
-        },
-      });
-
-      return updatedAttempt;
-    });
-
-    return submittedAttempt;
+    submitReason = "TIME_EXPIRED";
   }
 
-  // Assessment must still be ongoing
-  if (attempt.assessment.status !== AssessmentStatus.ONGOING) {
+  // Assessment ended
+  else if (
+    attempt.assessment.endAt &&
+    (isAfter(now, attempt.assessment.endAt) ||
+      isEqual(now, attempt.assessment.endAt))
+  ) {
+    submitReason = "ASSESSMENT_ENDED";
+  }
+
+  // If it is not expired, assessment must still be ongoing
+  if (
+    submitReason === "MANUAL_SUBMIT" &&
+    attempt.assessment.status !== AssessmentStatus.ONGOING
+  ) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "This assessment is no longer ongoing.",
     );
   }
 
-  // Assessment global end time check
-  if (
-    attempt.assessment.endAt &&
-    (isAfter(now, attempt.assessment.endAt) ||
-      isEqual(now, attempt.assessment.endAt))
-  ) {
-    const submittedAttempt = await prisma.$transaction(async (tx) => {
-      const updatedAttempt = await tx.attempt.update({
-        where: {
-          id: attempt.id,
-        },
-        data: {
-          status: AttemptStatus.SUBMITTED,
-          submittedAt: now,
-        },
-        select: {
-          id: true,
-          assessmentId: true,
-          candidateId: true,
-          startedAt: true,
-          expiresAt: true,
-          submittedAt: true,
-          status: true,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          userId,
-          action: AuditAction.SUBMIT,
-          entity: AuditEntity.ATTEMPT,
-          entityId: attempt.id,
-          oldValue: {
-            status: AttemptStatus.IN_PROGRESS,
-          },
-          newValue: {
-            status: AttemptStatus.SUBMITTED,
-            reason: "ASSESSMENT_ENDED",
-          },
-        },
-      });
-
-      return updatedAttempt;
-    });
-
-    return submittedAttempt;
-  }
-
-  // Manual submission
   const submittedAttempt = await prisma.$transaction(async (tx) => {
+    // 1. Submit attempt
     const updatedAttempt = await tx.attempt.update({
       where: {
         id: attempt.id,
@@ -658,6 +587,64 @@ const submitAssessment = async (userId: string, attemptId: string) => {
       },
     });
 
+    // 2. Check whether the assessment has subjective questions
+    const subjectiveQuestions = await tx.assessmentProblem.count({
+      where: {
+        assessmentId: attempt.assessment.id,
+        problem: {
+          type: {
+            in: [ProblemType.WRITTEN, ProblemType.CODING],
+          },
+        },
+      },
+    });
+
+    // 3. If there are no subjective questions,
+    //    result is immediately READY
+    if (subjectiveQuestions === 0) {
+      const answers = await tx.answer.findMany({
+        where: {
+          attemptId: attempt.id,
+        },
+        select: {
+          marksObtained: true,
+        },
+      });
+
+      const totalScore = answers.reduce(
+        (total, answer) => total + (answer.marksObtained ?? 0),
+        0,
+      );
+
+      const percentage =
+        attempt.assessment.totalMarks > 0
+          ? (totalScore / attempt.assessment.totalMarks) * 100
+          : 0;
+
+      const passed = totalScore >= attempt.assessment.passingMarks;
+
+      await tx.result.create({
+        data: {
+          attemptId: attempt.id,
+          totalScore,
+          percentage,
+          passed,
+          status: ResultStatus.READY,
+          generatedAt: now,
+        },
+      });
+    } else {
+      // 4. Subjective answers exist,
+      //    so result remains PROCESSING
+      await tx.result.create({
+        data: {
+          attemptId: attempt.id,
+          status: ResultStatus.PROCESSING,
+        },
+      });
+    }
+
+    // 5. Audit log
     await tx.auditLog.create({
       data: {
         userId,
@@ -669,7 +656,7 @@ const submitAssessment = async (userId: string, attemptId: string) => {
         },
         newValue: {
           status: AttemptStatus.SUBMITTED,
-          reason: "MANUAL_SUBMIT",
+          reason: submitReason,
         },
       },
     });

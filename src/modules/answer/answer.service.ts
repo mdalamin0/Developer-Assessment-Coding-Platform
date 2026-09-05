@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import { AttemptStatus, AuditAction, AuditEntity, Prisma, ProblemType, UserStatus } from "../../../generated/prisma/client";
+import { AttemptStatus, AuditAction, AuditEntity, Prisma, ProblemType, ResultStatus, UserStatus } from "../../../generated/prisma/client";
 import AppError from "../../errors/AppError";
 import { prisma } from "../../lib/prisma";
 import { IEvaluateAnswerPayload, IPendingAnswerQuery } from "./answer.interface";
@@ -326,6 +326,12 @@ const evaluateAnswer = async (
         },
       },
       evaluation: true,
+      attempt: {
+        select: {
+          id: true,
+          assessmentId: true,
+        },
+      },
     },
   });
 
@@ -358,6 +364,7 @@ const evaluateAnswer = async (
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    // Create evaluation
     const evaluation = await tx.evaluation.create({
       data: {
         answerId: answer.id,
@@ -367,6 +374,7 @@ const evaluateAnswer = async (
       },
     });
 
+    // Update answer marks
     await tx.answer.update({
       where: {
         id: answer.id,
@@ -376,6 +384,80 @@ const evaluateAnswer = async (
       },
     });
 
+    // Check remaining written/coding answers
+    const pendingAnswers = await tx.answer.count({
+      where: {
+        attemptId: answer.attempt.id,
+        problem: {
+          type: {
+            in: [ProblemType.WRITTEN, ProblemType.CODING],
+          },
+        },
+        evaluation: null,
+      },
+    });
+
+    // If all subjective answers are evaluated,
+    // calculate and make result READY
+    if (pendingAnswers === 0) {
+      const attemptAnswers = await tx.answer.findMany({
+        where: {
+          attemptId: answer.attempt.id,
+        },
+        select: {
+          marksObtained: true,
+        },
+      });
+
+      const assessment = await tx.assessment.findUnique({
+        where: {
+          id: answer.attempt.assessmentId,
+        },
+        select: {
+          totalMarks: true,
+          passingMarks: true,
+        },
+      });
+
+      if (!assessment) {
+        throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
+      }
+
+      const totalScore = attemptAnswers.reduce(
+        (total, currentAnswer) => total + (currentAnswer.marksObtained ?? 0),
+        0,
+      );
+
+      const percentage =
+        assessment.totalMarks > 0
+          ? (totalScore / assessment.totalMarks) * 100
+          : 0;
+
+      const passed = totalScore >= assessment.passingMarks;
+
+      await tx.result.upsert({
+        where: {
+          attemptId: answer.attempt.id,
+        },
+        create: {
+          attemptId: answer.attempt.id,
+          totalScore,
+          percentage,
+          passed,
+          status: ResultStatus.READY,
+          generatedAt: new Date(),
+        },
+        update: {
+          totalScore,
+          percentage,
+          passed,
+          status: ResultStatus.READY,
+          generatedAt: new Date(),
+        },
+      });
+    }
+
+    // Audit log
     await tx.auditLog.create({
       data: {
         userId,
@@ -394,6 +476,8 @@ const evaluateAnswer = async (
 
   return result;
 };
+
+
 
 export const answerService = {
   getPendingAnswers,

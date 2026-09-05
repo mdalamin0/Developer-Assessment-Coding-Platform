@@ -15,6 +15,11 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum ResultStatus {
+  PROCESSING
+  READY
+}
+
 enum AssessmentStatus {
   DRAFT
   PUBLISHED
