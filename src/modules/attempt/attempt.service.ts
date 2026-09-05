@@ -183,7 +183,6 @@ const getMySingleAttempt = async (userId: string, attemptId: string) => {
       _count: {
         select: {
           answers: true,
-          submissions: true,
         },
       },
     },

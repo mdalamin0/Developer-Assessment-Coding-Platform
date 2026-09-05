@@ -11,6 +11,8 @@ model Answer {
   attempt Attempt @relation(fields: [attemptId], references: [id])
   problem Problem @relation(fields: [problemId], references: [id])
 
+  evaluation Evaluation?
+
   @@unique([attemptId, problemId])
   @@index([problemId])
   @@map("answers")

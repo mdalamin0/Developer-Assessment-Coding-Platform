@@ -14,7 +14,6 @@ model Problem {
 
   recruiter   Recruiter          @relation(fields: [recruiterId], references: [id])
   assessments AssessmentProblem[]
-  submissions Submission[]
   answers Answer[]
 
 

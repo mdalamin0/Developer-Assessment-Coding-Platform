@@ -13,7 +13,6 @@ model Attempt {
   candidate  User       @relation(fields: [candidateId], references: [id])
 
   answers     Answer[]
-  submissions Submission[]
   result      Result?
 
   @@unique([assessmentId, candidateId])

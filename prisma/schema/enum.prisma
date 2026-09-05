@@ -48,10 +48,6 @@ enum AttemptStatus {
   EXPIRED
 }
 
-enum SubmissionStatus {
-  PENDING
-  EVALUATED
-}
 
 enum AuditAction {
   CREATE
@@ -74,6 +70,7 @@ enum AuditEntity {
   ATTEMPT
   SUBMISSION
   PAYMENT
+  ANSWER
 }
 
 
