@@ -13,14 +13,19 @@ const main = async () => {
     console.log("database connected successfullly!");
     await redisClient.connect();
     console.log("Redis connected successfully.");
-    await transporter.verify();
-    console.log("Nodemail connected successfully.");
+
+    try {
+      await transporter.verify();
+      console.log("Nodemailer connected successfully.");
+    } catch (error) {
+      console.error("Nodemailer verification failed:", error);
+    }
 
     await seedTesterAdmin();
 
     await updateAssessmentStatus();
     await autoSubmitExpiredAttempts();
-    
+
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}`);
     });
