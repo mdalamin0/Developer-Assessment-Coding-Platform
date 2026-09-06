@@ -1,0 +1,1414 @@
+{
+  "info": {
+    "name": "Developer Assessment & Coding Platform API",
+    "description": "Complete collection for the Developer Assessment & Coding Platform. Covers Auth, Users, Candidates, Recruiters, Admins, Assessments, Problems, Invitations, Attempts, Answers, Results and Payments.\n\n## Environment Variables\n- `baseUrl` : API base URL, e.g. `http://localhost:5000/api/v1`\n- `recruiterToken` : Bearer token of a logged-in RECRUITER\n- `candidateToken` : Bearer token of a logged-in CANDIDATE\n- `adminToken` : Bearer token of a logged-in ADMIN\n\n## Authentication\nOnly public endpoints are the Root, Auth register/verify/login, Google OAuth, payment callback, forgot/reset password. All other endpoints require `Authorization: Bearer <token>` header (token can also be passed via httpOnly cookie). Login as each role first, then copy the returned `accessToken` into the corresponding environment variable.\n\n## Demo API IDs\nSome endpoints take dynamic IDs (assessmentId, problemId, attemptId, etc.). These are returned by previous API calls at runtime. Placeholder values are provided and should be replaced with real UUIDs from your database.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "b7a6-dev-assessment-coding-platform"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Server Health",
+      "item": [
+        {
+          "name": "Server Status / Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlHost}}/",
+              "host": ["{{baseUrlHost}}"],
+              "path": [""]
+            },
+            "description": "Returns health status of the running server.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Recruiter",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed Khan\",\n  \"email\": \"recruiter.demo@gmail.com\",\n  \"password\": \"Recruiter@123\",\n  \"role\": \"RECRUITER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new RECRUITER account. An OTP is sent to the email (stored in Redis). Note: password must contain at least 1 lowercase, 1 uppercase, 1 number, and 1 special character, min 8 chars."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Candidate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fatima Rahman\",\n  \"email\": \"candidate.demo@gmail.com\",\n  \"password\": \"Candidate@123\",\n  \"role\": \"CANDIDATE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new CANDIDATE account. An OTP is sent to the email (stored in Redis). Note: password must contain at least 1 lowercase, 1 uppercase, 1 number, and 1 special character, min 8 chars."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email (OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"recruiter.demo@gmail.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            },
+            "description": "Verify the 6-digit OTP sent to the user's email. On success, the user is created and `accessToken` + `refreshToken` (and `user`) are returned in response body. Copy the `accessToken` into `recruiterToken` / `candidateToken` env var. The OTP is also set as an httpOnly cookie. Use the OTP value received in the email (demo: 123456)."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"recruiter.demo@gmail.com\",\n  \"password\": \"Recruiter@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login as RECRUITER. For CANDIDATE, change email to `candidate.demo@gmail.com`. Returns `{ accessToken, refreshToken }` in body and also sets httpOnly cookies. Use the returned `accessToken` as `Authorization: Bearer <token>` for protected endpoints."
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Login",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "google"]
+            },
+            "description": "Initiate Google OAuth2 authentication flow. Redirects to Google's consent screen.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/callback?code={{googleAuthCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "google", "callback"],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "{{googleAuthCode}}",
+                  "description": "Google OAuth authorization code returned after consent"
+                }
+              ]
+            },
+            "description": "Handled automatically by Google OAuth redirect flow. Uses `GOOGLE_CALLBACK_URL` from env. On success user is redirected to `{{frontendUrl}}/auth/success`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Clears the httpOnly accessToken and refreshToken cookies. Public endpoint.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"recruiter.demo@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Send a 6-digit reset OTP to the user's email. OTP is stored in Redis for 5 minutes.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"recruiter.demo@gmail.com\",\n  \"newPassword\": \"NewRecruiter@123\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Reset password using the OTP sent to the email. newPassword must meet the same strong password policy (min 8, lowercase, uppercase, number, special).",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My User Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Get the currently authenticated user's details including role-specific profile (candidate or recruiter). Requires ADMIN, CANDIDATE or RECRUITER token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Profile Image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": "/path/to/profile-image.png",
+                  "description": "Profile image file (max 5MB). Uploaded to Cloudinary."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/profile-image",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "profile-image"]
+            },
+            "description": "Upload a profile image for the logged-in user. Multipart/form-data with a single file field `profileImage` (max 5MB). Requires any authenticated role.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Candidates",
+      "item": [
+        {
+          "name": "Update Candidate Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "data",
+                  "value": "{\n  \"name\": \"Fatima Rahman\",\n  \"contactNumber\": \"+8801712345678\",\n  \"bio\": \"Full-stack developer with 4 years of experience building web applications.\",\n  \"skills\": [\"JavaScript\", \"TypeScript\", \"React\", \"Node.js\", \"Prisma\"],\n  \"experience\": 4,\n  \"githubUrl\": \"https://github.com/fatimarahman\",\n  \"linkedinUrl\": \"https://linkedin.com/in/fatimarahman\"\n}",
+                  "type": "text",
+                  "description": "JSON string containing the candidate profile update fields."
+                },
+                {
+                  "key": "resume",
+                  "type": "file",
+                  "src": "/path/to/resume.pdf",
+                  "description": "Optional resume file (PDF/DOCX, max 5MB). Uploaded to Cloudinary."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/candidates/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["candidates", "me"]
+            },
+            "description": "Update the logged-in candidate's profile. Multipart/form-data. The `data` field must be a JSON string; the `resume` field is an optional file upload. Requires CANDIDATE token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recruiters",
+      "item": [
+        {
+          "name": "Update Recruiter Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "data",
+                  "value": "{\n  \"name\": \"Ahmed Khan\",\n  \"companyName\": \"TechNova Solutions Ltd.\",\n  \"companyWebsite\": \"https://technova.example.com\",\n  \"companyDescription\": \"A software development company specializing in scalable enterprise applications.\",\n  \"designation\": \"Senior Hiring Manager\"\n}",
+                  "type": "text",
+                  "description": "JSON string containing the recruiter profile update fields."
+                },
+                {
+                  "key": "companyLogo",
+                  "type": "file",
+                  "src": "/path/to/company-logo.png",
+                  "description": "Optional company logo file (max 5MB). Uploaded to Cloudinary."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recruiters/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["recruiters", "me"]
+            },
+            "description": "Update the logged-in recruiter's profile. Multipart/form-data. The `data` field must be a JSON string; the `companyLogo` field is an optional file upload. Requires RECRUITER token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recruiter Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recruiters/dashboard-stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["recruiters", "dashboard-stats"]
+            },
+            "description": "Get aggregate dashboard statistics for the logged-in recruiter: total assessments, published assessments, total candidates, total attempts, pending evaluations, and average score. Requires RECRUITER token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assessment Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recruiters/assessment-statistics/{{assessmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["recruiters", "assessment-statistics", "{{assessmentId}}"]
+            },
+            "description": "Get detailed statistics for a single assessment: total candidates invited, total/completed attempts, pending evaluations, passed/failed counts, and average score. Requires RECRUITER token. Replace `{{assessmentId}}` with the actual assessment ID.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Update Admin Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"System Administrator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "me"]
+            },
+            "description": "Update the logged-in admin's name. Requires ADMIN token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/all-users?page=1&limit=10&searchTerm=rahman&role=CANDIDATE&status=ACTIVE&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "all-users"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "rahman", "description": "Search by name or email" },
+                { "key": "role", "value": "CANDIDATE", "description": "Filter by role: CANDIDATE | RECRUITER" },
+                { "key": "status", "value": "ACTIVE", "description": "Filter by status: ACTIVE | SUSPENDED | DELETED" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List all candidates and recruiters with pagination, search, role and status filters. Admin can see all users; candidate/recruiter profiles are included. Requires ADMIN token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}"]
+            },
+            "description": "Update a user's status to ACTIVE or SUSPENDED (DELETED cannot be reactivated). Creates an audit log entry. Replace `{{userId}}` with the target user's ID. Requires ADMIN token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit-logs?page=1&limit=10&searchTerm=assessment&action=PUBLISH&entity=ASSESSMENT&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "audit-logs"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "assessment", "description": "Search by entityId, user name or email" },
+                { "key": "action", "value": "PUBLISH", "description": "Filter by action: CREATE | UPDATE | DELETE | PUBLISH | INVITE | SUBMIT | EVALUATE | SUSPEND | ACTIVATE | PAYMENT_COMPLETED" },
+                { "key": "entity", "value": "ASSESSMENT", "description": "Filter by entity: USER | ASSESSMENT | PROBLEM | INVITATION | ATTEMPT | SUBMISSION | PAYMENT | ANSWER" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List audit logs with pagination, search, action and entity filters. Each log includes the triggering user. Requires ADMIN token.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assessments",
+      "item": [
+        {
+          "name": "Create Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Frontend Developer Assessment - Round 1\",\n  \"description\": \"Assess core frontend development skills including JavaScript, React and CSS.\",\n  \"duration\": 60,\n  \"totalMarks\": 100,\n  \"passingMarks\": 60,\n  \"startAt\": \"2026-09-10T09:00:00.000Z\",\n  \"endAt\": \"2026-09-12T18:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments"]
+            },
+            "description": "Create a new assessment (status defaults to DRAFT). `duration` is in minutes. `startAt`/`endAt` are ISO 8601 datetimes; end must be after start. Requires RECRUITER token. Note: startAt must be in the future."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Assessments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/my-assessments?page=1&limit=10&searchTerm=frontend&status=DRAFT&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "my-assessments"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "frontend", "description": "Search by title or description" },
+                { "key": "status", "value": "DRAFT", "description": "Filter by status: DRAFT | PUBLISHED | ONGOING | COMPLETED | ARCHIVED" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List assessments created by the logged-in recruiter with pagination, search and status filter. Requires RECRUITER token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Assessments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/all-assessments?page=1&limit=10&searchTerm=developer&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "all-assessments"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "developer", "description": "Search by title or description" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List assessments. For a RECRUITER, returns only their own assessments; for an ADMIN, returns all assessments. Requires RECRUITER or ADMIN token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Assessment",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}"]
+            },
+            "description": "Get a single assessment including its problems (ordered by questionOrder). Recruiters can only view their own; admins can view any. Requires RECRUITER or ADMIN token. Replace `{{assessmentId}}` with the assessment ID.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Update Assessment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Frontend Developer Assessment - Round 1 (Updated)\",\n  \"description\": \"Revised description with additional focus on accessibility and testing.\",\n  \"duration\": 75,\n  \"totalMarks\": 100,\n  \"passingMarks\": 65\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}"]
+            },
+            "description": "Update an assessment's details. Cannot be updated while ONGOING or COMPLETED. Passing marks cannot exceed total marks; end must be after start. Requires RECRUITER token (owner only). Replace `{{assessmentId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Publish Assessment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}", "publish"]
+            },
+            "description": "Publish a DRAFT assessment (transitions to PUBLISHED). The assessment must have at least one problem AND a COMPLETED payment. Creates an audit log. Requires RECRUITER token (owner). Replace `{{assessmentId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Assessment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}"]
+            },
+            "description": "Soft-delete an assessment (sets deletedAt). Cannot be deleted while ONGOING or COMPLETED. Requires RECRUITER (owner) or ADMIN token. Replace `{{assessmentId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Add Problem to Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problemId\": \"{{problemId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/problems",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}", "problems"]
+            },
+            "description": "Add an existing problem to an assessment. `problemId` must be a UUID of a problem owned by the same recruiter. Question order is auto-assigned. Cannot be added to ONGOING/COMPLETED assessments. Requires RECRUITER token. Replace `{{assessmentId}}` and `{{problemId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assessment Problems",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/problems",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}", "problems"]
+            },
+            "description": "List problems attached to an assessment, ordered by questionOrder. Requires RECRUITER token (owner). Replace `{{assessmentId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Problem from Assessment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/problems/{{problemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}", "problems", "{{problemId}}"]
+            },
+            "description": "Remove a problem from an assessment. Remaining problems are re-ordered automatically. Cannot be done on ONGOING/COMPLETED assessments. Requires RECRUITER token (owner). Replace IDs.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Reorder Assessment Problems",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problems\": [\n    { \"problemId\": \"{{problemId2}}\", \"questionOrder\": 1 },\n    { \"problemId\": \"{{problemId1}}\", \"questionOrder\": 2 },\n    { \"problemId\": \"{{problemId3}}\", \"questionOrder\": 3 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assessments/{{assessmentId}}/problems/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "{{assessmentId}}", "problems", "reorder"]
+            },
+            "description": "Reorder problems within an assessment. ALL problems in the assessment must be included. `questionOrder` must be unique and sequential starting from 1. Requires RECRUITER token (owner). Replace IDs.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Assessments (Candidate)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assessments/candidate/available-assessments?page=1&limit=10&searchTerm=frontend&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["assessments", "candidate", "available-assessments"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "frontend", "description": "Search by title or description" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List PUBLISHED assessments for which the candidate has a PENDING invitation. Includes invitation details. Requires CANDIDATE token.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Problems",
+      "item": [
+        {
+          "name": "Create MCQ Problem",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Which method removes the last element from an array?\",\n  \"description\": \"Select the correct JavaScript array method that removes the last element in place.\",\n  \"type\": \"MCQ\",\n  \"difficulty\": \"EASY\",\n  \"marks\": 5,\n  \"options\": [\"pop()\", \"push()\", \"shift()\", \"splice()\"],\n  \"correctAnswer\": \"pop()\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems"]
+            },
+            "description": "Create a multiple-choice problem. For MCQs, `options` (min 2) and `correctAnswer` (must match one option) are required. Requires RECRUITER token."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Written Problem",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Explain the Concept of Closure in JavaScript\",\n  \"description\": \"Describe what a closure is in JavaScript, with a brief code example and a real-world use case.\",\n  \"type\": \"WRITTEN\",\n  \"difficulty\": \"MEDIUM\",\n  \"marks\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems"]
+            },
+            "description": "Create a written (subjective) problem. No options or correctAnswer allowed. Requires RECRUITER token."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Coding Problem",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Two Sum Problem\",\n  \"description\": \"Given an array of integers and a target, return the indices of the two numbers that add up to the target.\",\n  \"type\": \"CODING\",\n  \"difficulty\": \"HARD\",\n  \"marks\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems"]
+            },
+            "description": "Create a coding problem. No options or correctAnswer allowed. Requires RECRUITER token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Problems",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/my-problems?page=1&limit=10&searchTerm=array&type=MCQ&difficulty=EASY&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems", "my-problems"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "array", "description": "Search by title or description" },
+                { "key": "type", "value": "MCQ", "description": "Filter by type: MCQ | WRITTEN | CODING" },
+                { "key": "difficulty", "value": "EASY", "description": "Filter by difficulty: EASY | MEDIUM | HARD" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List problems created by the logged-in recruiter with pagination, search, type and difficulty filters. Requires RECRUITER token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Problems",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/all-problems?page=1&limit=10&searchTerm=javascript&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems", "all-problems"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "javascript", "description": "Search by title or description" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List problems. For a RECRUITER, returns only their own problems; for an ADMIN, returns all problems. Requires RECRUITER or ADMIN token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Problem",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/{{problemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems", "{{problemId}}"]
+            },
+            "description": "Get a single problem. `correctAnswer` is only returned to the owning recruiter. Requires RECRUITER or ADMIN token. Replace `{{problemId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Update Problem",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Which array method removes the FIRST element?\",\n  \"description\": \"Select the correct JavaScript array method that removes the first element in place.\",\n  \"type\": \"MCQ\",\n  \"difficulty\": \"EASY\",\n  \"marks\": 5,\n  \"options\": [\"pop()\", \"shift()\", \"unshift()\", \"splice()\"],\n  \"correctAnswer\": \"shift()\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/problems/{{problemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems", "{{problemId}}"]
+            },
+            "description": "Update a problem (partial updates supported). Follows same validation rules as creation (MCQ requires options & valid correctAnswer; non-MCQ must have neither). Requires RECRUITER token (owner). Replace `{{problemId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Problem",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/{{problemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["problems", "{{problemId}}"]
+            },
+            "description": "Soft-delete a problem (sets deletedAt). Cannot be deleted if it is attached to any assessment. Requires RECRUITER (owner) or ADMIN token. Replace `{{problemId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invitations",
+      "item": [
+        {
+          "name": "Create Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidateId\": \"{{candidateUserId}}\",\n  \"expiresAt\": \"2026-09-11T18:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{assessmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["invitations", "{{assessmentId}}"]
+            },
+            "description": "Invite a CANDIDATE to an assessment. The assessment must be PUBLISHED (or ONGOING), not DRAFT/COMPLETED/ARCHIVED. `candidateId` is the candidate's USER id. `expiresAt` cannot be after assessment endAt. Sends an invitation email. Requires RECRUITER token (owner). Replace IDs.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Invitations (Recruiter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/recruiter/my-invitations?page=1&limit=10&searchTerm=rahman&status=PENDING&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["invitations", "recruiter", "my-invitations"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "rahman", "description": "Search by candidate name/email or assessment title" },
+                { "key": "status", "value": "PENDING", "description": "Filter by status: PENDING | ACCEPTED | DECLINED | EXPIRED" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List invitations sent by the logged-in recruiter with candidate & assessment info. Requires RECRUITER token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Invitations (Candidate)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/candidate/my-invitations?page=1&limit=10&searchTerm=frontend&status=PENDING&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["invitations", "candidate", "my-invitations"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "frontend", "description": "Search by assessment title" },
+                { "key": "status", "value": "PENDING", "description": "Filter by status: PENDING | ACCEPTED | DECLINED | EXPIRED" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List invitations received by the logged-in candidate with assessment info. Requires CANDIDATE token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Invitation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACCEPTED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationId}}/respond",
+              "host": ["{{baseUrl}}"],
+              "path": ["invitations", "{{invitationId}}", "respond"]
+            },
+            "description": "Accept or decline an invitation. Only possible while status is PENDING and the assessment is PUBLISHED/ONGOING and not expired. Requires CANDIDATE token. Replace `{{invitationId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment (bKash)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assessmentId\": \"{{assessmentId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/create-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "create-payment"]
+            },
+            "description": "Initiates a bKash payment for publishing an assessment. The assessment must belong to the recruiter and be not yet paid. Returns a `paymentUrl` where the recruiter completes bKash payment. Requires RECRUITER token. Replace `{{assessmentId}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Retry Payment (bKash)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assessmentId\": \"{{assessmentId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/retry-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "retry-payment"]
+            },
+            "description": "Re-initiates a bKash payment for an assessment whose previous payment is PENDING (not completed). Returns a fresh `paymentUrl`. Requires RECRUITER token. Replace `{{assessmentId}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "bKash Payment Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment/bkash-payment/callback?paymentID=TRX123456&status=success",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "bkash-payment", "callback"],
+              "query": [
+                { "key": "paymentID", "value": "TRX123456", "description": "bKash payment ID from the tokenized checkout" },
+                { "key": "status", "value": "success", "description": "Callback status: success | cancel | failure" }
+              ]
+            },
+            "description": "bKash callback endpoint. Handles success/cancel/failure, executes the payment, and redirects the recruiter to the frontend with the payment status in the URL. Public endpoint (called by bKash).",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attempts",
+      "item": [
+        {
+          "name": "Start Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{assessmentId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["attempts", "{{assessmentId}}", "start"]
+            },
+            "description": "Start an assessment attempt as a candidate. Requires the assessment to be ONGOING, clause end time & candidate to have an ACCEPTED invitation. One attempt per candidate per assessment. Returns attempt + assessment details. Requires CANDIDATE token. Replace `{{assessmentId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Single Attempt",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["attempts", "{{attemptId}}"]
+            },
+            "description": "Get details of one of the logged-in candidate's attempts, including answer count and assessment info. Requires CANDIDATE token. Replace `{{attemptId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attempt Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["attempts", "{{attemptId}}", "questions"]
+            },
+            "description": "Get questions for an in-progress attempt, ordered by questionOrder. Only available while attempt is IN_PROGRESS. Requires CANDIDATE token. Replace `{{attemptId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"problemId\": \"{{problemId}}\",\n  \"answer\": \"pop()\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}/answers",
+              "host": ["{{baseUrl}}"],
+              "path": ["attempts", "{{attemptId}}", "answers"]
+            },
+            "description": "Submit/save an answer for a problem in the current attempt (upserts by attempt+problem). For MCQ problems, the answer must match one of the options. Auto-submits attempt if time has expired. Requires CANDIDATE token. Replace `{{attemptId}}` and `{{problemId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attempts/{{attemptId}}/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["attempts", "{{attemptId}}", "submit"]
+            },
+            "description": "Manually submit an in-progress attempt. If the assessment has only MCQ (no subjective) problems, the result is computed and set to READY. Otherwise the result stays PROCESSING until all subjective answers are evaluated. Requires CANDIDATE token. Replace `{{attemptId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Answers (Evaluation)",
+      "item": [
+        {
+          "name": "Get Pending Answers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/answers/pending?page=1&limit=10&searchTerm=closure&sortBy=updatedAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["answers", "pending"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "closure", "description": "Search by problem title, candidate name/email, or assessment title" },
+                { "key": "sortBy", "value": "updatedAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List pending (un-evaluated) WRITTEN/CODING answers across the recruiter's assessments, with problem, candidate and attempt details. Requires RECRUITER token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Answer",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/answers/{{answerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["answers", "{{answerId}}"]
+            },
+            "description": "Get a single answer with its problem, attached attempt, candidate, assessment, and any existing evaluation. Only for submitted attempts in the recruiter's assessments. Requires RECRUITER token. Replace `{{answerId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Evaluate Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 18,\n  \"feedback\": \"Good explanation. Include a concrete example of how closures are used in event handlers and module patterns.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/answers/{{answerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["answers", "{{answerId}}"]
+            },
+            "description": "Evaluate a WRITTEN or CODING answer. `score` must be 0 or greater and cannot exceed the problem's marks. `feedback` is optional (max 1000 chars). When all subjective answers for the attempt are evaluated, the result is finalized (READY) automatically. Requires RECRUITER token. Replace `{{answerId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Results",
+      "item": [
+        {
+          "name": "Get My Results (Candidate)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/results/my-results?page=1&limit=10&searchTerm=frontend&status=READY&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["results", "my-results"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "searchTerm", "value": "frontend", "description": "Search by assessment title" },
+                { "key": "status", "value": "READY", "description": "Filter by result status: PROCESSING | READY" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "List the logged-in candidate's assessment results with pagination, search and status filter. Requires CANDIDATE token.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attempt Result (Candidate)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{candidateToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/results/{{attemptId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["results", "{{attemptId}}"]
+            },
+            "description": "Get the result for a specific submitted attempt. The attempt must be owned by the candidate and SUBMITTED. Requires CANDIDATE token. Replace `{{attemptId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assessment Results (Recruiter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/results/assessment/{{assessmentId}}?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["results", "assessment", "{{assessmentId}}"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default 10)" },
+                { "key": "sortBy", "value": "createdAt", "description": "Sort field" },
+                { "key": "sortOrder", "value": "desc", "description": "Sort order: asc | desc" }
+              ]
+            },
+            "description": "Get all results for a specific assessment owned by the recruiter, including candidate info. Requires RECRUITER token. Replace `{{assessmentId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Result (Recruiter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{recruiterToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/results/recruiter/{{resultId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["results", "recruiter", "{{resultId}}"]
+            },
+            "description": "Get a single result by ID, accessible by the recruiter who owns the assessment, with full attempt, candidate and assessment details. Requires RECRUITER token. Replace `{{resultId}}`.",
+            "url_empty": true
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "baseUrlHost",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "frontendUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "recruiterToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidateToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "{{recruiterToken}}",
+      "type": "string"
+    },
+    {
+      "key": "googleAuthCode",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "assessmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "problemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "problemId1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "problemId2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "problemId3",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attemptId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "answerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resultId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "candidateUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

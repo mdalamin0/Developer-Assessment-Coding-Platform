@@ -50,7 +50,7 @@ app.use(cookieParser());
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "Developer Assessment $ Coding Platfrom server is running successfully!",
+    message: "Developer Assessment & Coding Platfrom server is running successfully!",
   });
 });
 
