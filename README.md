@@ -13,6 +13,7 @@ This is a **backend-only** repository. Everything is built with **TypeScript**, 
 | 🔗 GitHub Repository | [https://github.com/mdalamin0/Developer-Assessment-Coding-Platform](https://github.com/mdalamin0/Developer-Assessment-Coding-Platform) |
 | 🧾 Postman Collection | `postman/collection.json` (included in the repo) |
 | 🚀 Local API Base URL | `http://localhost:5000/api/v1` |
+| 🚀 Live API Base URL | `https://developer-assessment-coding-platfor.vercel.app/api/v1` |
 | 💡 Health Check (Root) | `GET http://localhost:5000/` |
 
 > Each module is mounted under the `/api/v1` prefix (e.g. `/api/v1/auth`, `/api/v1/assessments`, `/api/v1/payments`, ...).
