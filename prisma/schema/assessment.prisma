@@ -3,12 +3,12 @@ model Assessment {
   recruiterId  String
   title        String
   description  String?
-  duration     Int // minutes
+  duration     Int 
   totalMarks   Int
   passingMarks Int
   status       AssessmentStatus @default(DRAFT)
-  startAt      DateTime?
-  endAt        DateTime?
+  startAt      DateTime
+  endAt        DateTime
   deletedAt    DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

@@ -1,39 +1,140 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Welcome</title>
+
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f7f7f7;
-      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 40px 15px;
+      box-sizing: border-box;
     }
 
     .container {
-      max-width: 500px;
-      margin: 40px auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      background: #2563eb;
+      padding: 30px 25px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 25px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 35px 30px;
+    }
+
+    .content h2 {
+      margin: 0 0 15px;
+      font-size: 22px;
+      color: #111827;
+    }
+
+    .content p {
+      margin: 0 0 15px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #4b5563;
+    }
+
+    .welcome-box {
+      margin: 25px 0;
+      padding: 18px 20px;
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      border-radius: 6px;
+    }
+
+    .welcome-box p {
+      margin: 0;
+      color: #1e40af;
     }
 
     .footer {
-      margin-top: 30px;
+      padding: 20px 25px;
+      background: #f9fafb;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .footer p {
+      margin: 4px 0;
       font-size: 12px;
-      color: #888;
+      color: #9ca3af;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h2>Welcome to Developer Assessment Coding Platfrom, <%= name %>!</h2>
-    <p>Thanks for joining Developer Assessment Coding Platfrom. Your account has been created successfully.</p>
-    <div class="footer">&copy; Developer Assessment Coding Platfrom.. All rights reserved.</div>
+
+  <div class="wrapper">
+    <div class="container">
+
+      <div class="header">
+        <h1>Developer Assessment</h1>
+        <p>Coding & Assessment Platform</p>
+      </div>
+
+      <div class="content">
+
+        <h2>Welcome, <%= name %>! 👋</h2>
+
+        <p>
+          We're excited to welcome you to the
+          <strong>Developer Assessment Coding Platform</strong>.
+        </p>
+
+        <p> Your account has been created successfully. Welcome to our platform! We're excited to have you as a part of
+          our
+          community. </p>
+        <div class="welcome-box">
+          <p> 🚀 We're glad to have you with us. Let's build, connect, and grow together! </p>
+        </div>
+
+        <p> Thank you for joining us. We wish you a great experience on the platform. </p>
+
+      </div>
+
+      <div class="footer">
+        <p>
+          &copy; <%= new Date().getFullYear() %>
+            Developer Assessment Coding Platform.
+        </p>
+        <p>All rights reserved.</p>
+      </div>
+
+    </div>
   </div>
+
 </body>
 
 </html>
+```

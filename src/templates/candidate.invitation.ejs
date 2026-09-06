@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assessment Invitation</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 40px 15px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      background: #2563eb;
+      padding: 30px 25px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 25px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 35px 30px;
+    }
+
+    .content h2 {
+      margin: 0 0 15px;
+      font-size: 22px;
+      color: #111827;
+    }
+
+    .content p {
+      margin: 0 0 15px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #4b5563;
+    }
+
+    .assessment-box {
+      margin: 25px 0;
+      padding: 20px;
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      border-radius: 6px;
+    }
+
+    .assessment-box h3 {
+      margin: 0 0 15px;
+      font-size: 18px;
+      color: #1e40af;
+    }
+
+    .assessment-box p {
+      margin: 8px 0;
+      color: #374151;
+      font-size: 14px;
+    }
+
+    .assessment-box strong {
+      color: #111827;
+    }
+
+    .instruction-box {
+      margin: 25px 0;
+      padding: 18px 20px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+    }
+
+    .instruction-box p {
+      margin: 0;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .button-wrapper {
+      text-align: center;
+      margin: 30px 0 10px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 12px 25px;
+      background: #2563eb;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .footer {
+      padding: 20px 25px;
+      background: #f9fafb;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .footer p {
+      margin: 4px 0;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <div class="container">
+
+      <div class="header">
+        <h1>Developer Assessment</h1>
+        <p>Coding & Assessment Platform</p>
+      </div>
+
+      <div class="content">
+
+        <h2>Hello, <%= candidateName %>! 👋</h2>
+
+        <p>
+          You have been invited to participate in an assessment on the
+          <strong>Developer Assessment Coding Platform</strong>.
+        </p>
+
+        <p>
+          <strong>
+            <%= recruiterName %>
+          </strong>
+          <% if (companyName) { %>
+            from <strong>
+              <%= companyName %>
+            </strong>
+            <% } %>
+              has invited you to complete the following assessment:
+        </p>
+
+        <div class="assessment-box">
+
+          <h3>
+            <%= assessmentTitle %>
+          </h3>
+
+          <p>
+            <strong>Duration:</strong>
+            <%= duration %> minutes
+          </p>
+
+          <% if (startAt) { %>
+            <p>
+              <strong>Start Time:</strong>
+              <%= startAt %>
+            </p>
+            <% } %>
+
+              <% if (endAt) { %>
+                <p>
+                  <strong>End Time:</strong>
+                  <%= endAt %>
+                </p>
+                <% } %>
+
+                  <% if (invitationExpiresAt) { %>
+                    <p>
+                      <strong>Invitation Expires:</strong>
+                      <%= invitationExpiresAt %>
+                    </p>
+                    <% } %>
+
+        </div>
+
+        <div class="instruction-box">
+
+          <p>
+            Please log in to your account and check your invitation.
+            Accept the invitation before it expires and start your
+            assessment within the scheduled time.
+          </p>
+
+        </div>
+
+        <div class="button-wrapper">
+          <a href="<%= platformUrl %>" class="button">
+            View Assessment
+          </a>
+        </div>
+
+        <p>
+          Please make sure you have a stable internet connection before
+          starting the assessment.
+        </p>
+
+        <p>
+          Good luck with your assessment! 🚀
+        </p>
+
+      </div>
+
+      <div class="footer">
+        <p>
+          &copy; <%= new Date().getFullYear() %>
+            Developer Assessment Coding Platform.
+        </p>
+
+        <p>All rights reserved.</p>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+
+</html>

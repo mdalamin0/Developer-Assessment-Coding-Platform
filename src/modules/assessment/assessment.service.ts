@@ -88,8 +88,8 @@ const createAssessment = async (
       duration: payload.duration,
       totalMarks: payload.totalMarks,
       passingMarks: payload.passingMarks,
-      startAt: payload.startAt ? parseISO(payload.startAt) : undefined,
-      endAt: payload.endAt ? parseISO(payload.endAt) : undefined,
+      startAt: parseISO(payload.startAt),
+      endAt: parseISO(payload.endAt),
     },
   });
 
@@ -351,7 +351,7 @@ const getAllAssessments = async (userId: string, query: IAssessmentQuery) => {
   };
 };
 
- const updateAssessment = async (
+const updateAssessment = async (
   userId: string,
   assessmentId: string,
   payload: IUpdateAssessmentPayload,
@@ -416,18 +416,12 @@ const getAllAssessments = async (userId: string, query: IAssessmentQuery) => {
   const startAt =
     payload.startAt === undefined
       ? assessment.startAt
-      : payload.startAt === null
-        ? null
-        : new Date(payload.startAt);
+      : new Date(payload.startAt);
 
   const endAt =
-    payload.endAt === undefined
-      ? assessment.endAt
-      : payload.endAt === null
-        ? null
-        : new Date(payload.endAt);
+    payload.endAt === undefined ? assessment.endAt : new Date(payload.endAt);
 
-  if (startAt && endAt && !isAfter(endAt, startAt)) {
+  if (!isAfter(endAt, startAt)) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "End time must be greater than start time.",
@@ -525,7 +519,7 @@ const publishAssessment = async (userId: string, assessmentId: string) => {
     where: {
       assessmentId: assessment.id,
       recruiterId: user.recruiter.id,
-      status: PaymentStatus.COMPLETED
+      status: PaymentStatus.COMPLETED,
     },
   });
 
@@ -626,8 +620,7 @@ const deleteAssessment = async (userId: string, assessmentId: string) => {
   return deletedAssessment;
 };
 
-
-// Assessment-problem services 
+// Assessment-problem services
 const addProblemToAssessment = async (
   userId: string,
   assessmentId: string,
@@ -1058,11 +1051,8 @@ const reorderAssessmentProblems = async (
   });
 };
 
-// services for candidate assessment 
-const getAvailableAssessments = async (
-  userId: string,
-  query: IQuery,
-) => {
+// services for candidate assessment
+const getAvailableAssessments = async (userId: string, query: IQuery) => {
   const limit = query.limit ? Number(query.limit) : 10;
   const page = query.page ? Number(query.page) : 1;
   const skip = (page - 1) * limit;
@@ -1124,8 +1114,6 @@ const getAvailableAssessments = async (
     });
   }
 
-  
-
   const assessments = await prisma.assessment.findMany({
     where: {
       AND: andConditions,
@@ -1186,9 +1174,6 @@ const getAvailableAssessments = async (
     },
   };
 };
-
-
-
 
 export const assessmentServices = {
   createAssessment,

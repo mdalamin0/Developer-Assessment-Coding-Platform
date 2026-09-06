@@ -15,6 +15,11 @@ import {
   IInvitationQuery,
   IInvitationResponsePayload,
 } from "./invitation.interface";
+import ejs from "ejs";
+import path from "path";
+import config from "../../config";
+import { transporter } from "../../lib/nodemailer";
+import { format } from "date-fns";
 
 const createInvitation = async (
   userId: string,
@@ -56,15 +61,15 @@ const createInvitation = async (
     throw new AppError(httpStatus.NOT_FOUND, "Assessment not found.");
   }
 
-  if(assessment.status === AssessmentStatus.DRAFT){
-     throw new AppError(
-       httpStatus.BAD_REQUEST,
-       "Draft assessment can not be an invite.",
-     );
+  if (assessment.status === AssessmentStatus.DRAFT) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Draft assessment can not be an invite.",
+    );
   }
 
   if (
-    assessment.status === AssessmentStatus.ONGOING ||
+    // assessment.status === AssessmentStatus.ONGOING ||
     assessment.status === AssessmentStatus.COMPLETED ||
     assessment.status === AssessmentStatus.ARCHIVED
   ) {
@@ -102,11 +107,20 @@ const createInvitation = async (
     );
   }
 
+  if (payload.expiresAt && new Date(payload.expiresAt) > assessment.endAt) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Invitation expiry cannot be after the assessment end time.",
+    );
+  }
+
   const invitation = await prisma.invitation.create({
     data: {
       assessmentId: assessment.id,
       candidateId: candidate.id,
-      expiresAt: payload.expiresAt ? new Date(payload.expiresAt) : null,
+      expiresAt: payload.expiresAt
+        ? new Date(payload.expiresAt)
+        : assessment.endAt,
     },
     include: {
       candidate: {
@@ -131,6 +145,40 @@ const createInvitation = async (
       },
     },
   });
+
+  // Send invitation email
+  try {
+    const templatePath = path.join(
+      process.cwd(),
+      "src/templates/candidate.invitation.ejs",
+    );
+
+    const templateData = {
+      candidateName: candidate.name,
+      recruiterName: user.name,
+      companyName: user.recruiter.companyName,
+      assessmentTitle: assessment.title,
+      duration: assessment.duration,
+      startAt: format(assessment.startAt, "EEEE, MMMM d, yyyy 'at' h:mm a"),
+      endAt: format(assessment.endAt, "EEEE, MMMM d, yyyy 'at' h:mm a"),
+      invitationExpiresAt: format(
+        invitation.expiresAt!,
+        "EEEE, MMMM d, yyyy 'at' h:mm a",
+      ),
+      platformUrl: `${config.frontend_url}/invitations`,
+    };
+
+    const html = await ejs.renderFile(templatePath, templateData);
+
+    await transporter.sendMail({
+      from: config.email_sender,
+      to: candidate.email,
+      subject: `Assessment Invitation - ${assessment.title}`,
+      html,
+    });
+  } catch (error) {
+    console.error("Failed to send invitation email:", error);
+  }
 
   return invitation;
 };

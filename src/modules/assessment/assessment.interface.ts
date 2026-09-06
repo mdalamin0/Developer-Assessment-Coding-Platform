@@ -7,8 +7,8 @@ export interface ICreateAssessmentPayload {
   duration: number;
   totalMarks: number;
   passingMarks: number;
-  startAt?: string;
-  endAt?: string;
+  startAt: string;
+  endAt: string;
 }
 
 export type IAssessmentQuery = IQuery & Prisma.AssessmentWhereInput;
@@ -19,8 +19,8 @@ export interface IUpdateAssessmentPayload {
   duration?: number;
   totalMarks?: number;
   passingMarks?: number;
-  startAt?: string | null;
-  endAt?: string | null;
+  startAt?: string;
+  endAt?: string;
 }
 
 export interface IAddProblemPayload {
