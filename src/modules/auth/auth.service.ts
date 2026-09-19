@@ -92,23 +92,32 @@ const registerUser = async (payload: CreateUserPayload) => {
   });
 };
 
-const resendVerificationCode = async (payloaEmail : string) => {
+const resendVerificationCode = async (payloaEmail: string) => {
   const email = payloaEmail.trim().toLowerCase();
 
   const isExistsUser = await prisma.user.findUnique({
     where: {
-     email,
+      email,
     },
   });
 
-   if (!isExistsUser) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-   }
-
-  if (isExistsUser.emailVerified) {
+  if (isExistsUser?.emailVerified) {
     throw new AppError(httpStatus.BAD_REQUEST, "Email is already verified");
   }
 
+  // Get registration data
+  const userRegistrationKey = `user-registration-data:${email}`;
+
+  const redisUserData = await redisClient.get(userRegistrationKey);
+
+  if (!redisUserData) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Registration session expired. Please register again.",
+    );
+  }
+
+  const userPayload: CreateUserPayload = JSON.parse(redisUserData);
 
   const expirationSeconds = 5 * 60;
   const otpKey = `user-registration-otp:${email}`;
@@ -121,14 +130,13 @@ const resendVerificationCode = async (payloaEmail : string) => {
     },
   });
 
-
   const tempatePath = path.join(
     process.cwd(),
     "src/templates/registration-user-otp.ejs",
   );
 
   const templateData = {
-    name: isExistsUser.name,
+    name: userPayload.name,
     email,
     otp: otpValue,
     expirationMinutes: expirationSeconds / 60,
