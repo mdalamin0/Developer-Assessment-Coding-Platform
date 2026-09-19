@@ -2,9 +2,7 @@ import z, { email } from "zod";
 
 export const registerValidationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-
   email: z.email("Invalid email address"),
-
   password: z
     .string()
     .min(8, "Password Must Minimum 8 Characters Long.")
@@ -31,6 +29,12 @@ export const loginValidationSchema = z.object({
 export const ForgotPasswordZodSchema = z.object({
   email: z.email(),
 });
+
+export const resendVerificationCodeSchema = z.object({
+  email: z.email("Invalid email address"),
+});
+
+
 
 export const ResetPasswordZodSchema = z.object({
   email: z.email(),

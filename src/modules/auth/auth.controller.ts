@@ -21,6 +21,19 @@ const registerUser = catchAsync(
   },
 );
 
+const resendVerificationCode = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+    await authServices.resendVerificationCode(email);
+
+    sendResponse(
+      res,
+      { message: "Verification code resent successfully", data: null },
+      httpStatus.OK,
+    );
+  },
+);
+
 const verifyEmail = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
@@ -126,7 +139,7 @@ const googleCallback = catchAsync(
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
-    res.redirect(`${config.frontend_url}/auth/success`);
+    res.redirect(`${config.frontend_url}/candidate`);
   },
 );
 
@@ -190,4 +203,5 @@ export const authControllers = {
   logout,
   forgotPassword,
   resetPassword,
+  resendVerificationCode
 };

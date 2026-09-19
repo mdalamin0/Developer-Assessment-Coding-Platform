@@ -5,6 +5,8 @@ import { Role } from "../../../generated/prisma/enums";
 
 const router = Router();
 
+router.get("/", auth(Role.RECRUITER), paymentControllers.getRecruiterPayments);
+
 router.post(
   "/create-payment",
   auth(Role.RECRUITER),

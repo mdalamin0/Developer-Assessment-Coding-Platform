@@ -151,7 +151,7 @@
                 }
               ]
             },
-            "description": "Handled automatically by Google OAuth redirect flow. Uses `GOOGLE_CALLBACK_URL` from env. On success user is redirected to `{{frontendUrl}}/auth/success`.",
+            "description": "Handled automatically by Google OAuth redirect flow. Uses `GOOGLE_CALLBACK_URL` from env. On success user is redirected to `{{frontendUrl}}/candidate`.",
             "url_empty": true
           },
           "response": []

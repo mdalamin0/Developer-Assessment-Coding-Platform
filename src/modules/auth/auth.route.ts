@@ -5,6 +5,7 @@ import {
   ForgotPasswordZodSchema,
   loginValidationSchema,
   registerValidationSchema,
+  resendVerificationCodeSchema,
   ResetPasswordZodSchema,
   userVerifyEmailZodSchema,
 } from "./auth.validation";
@@ -16,6 +17,12 @@ router.post(
   "/register",
   validateRequest(registerValidationSchema),
   authControllers.registerUser,
+);
+
+router.post(
+  "/resend-verification-code",
+  validateRequest(resendVerificationCodeSchema),
+  authControllers.resendVerificationCode,
 );
 
 router.post(

@@ -61,8 +61,24 @@ const bkashPaymentCallback = catchAsync(
   },
 );
 
+const getRecruiterPayments = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+
+  const result = await paymentServices.getRecruiterPayments(userId, req.query);
+
+  sendResponse(
+    res,
+    {
+      message: "Payments retrive successfully!",
+      data: result,
+    },
+    httpStatus.OK,
+  );
+});
+
 export const paymentControllers = {
   createPayment,
   bkashPaymentCallback,
-  retryPayment
+  retryPayment,
+  getRecruiterPayments
 };

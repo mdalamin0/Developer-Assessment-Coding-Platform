@@ -8,6 +8,8 @@ import {
   PaymentStatus,
   UserStatus,
 } from "../../../generated/prisma/enums";
+import { IPaymentsQuery } from "./payment.interface";
+import { Prisma } from "../../../generated/prisma/client";
 
 const createPayment = async (userId: string, assessmentId: string) => {
   // 1. Recruiter check
@@ -274,7 +276,7 @@ const retryPayment = async (userId: string, assessmentId: string) => {
   return {
     paymentUrl: bkashCreatePaymentResult.bkashURL,
   };
-};;
+};
 
 const bkashPaymentCallback = async (query: Record<string, any>) => {
   const paymentId = query.paymentID;
@@ -403,8 +405,116 @@ const bkashPaymentCallback = async (query: Record<string, any>) => {
   };
 };
 
+const getRecruiterPayments = async (userId: string, query: IPaymentsQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      recruiter: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter not found");
+  }
+
+  if (user.status === UserStatus.SUSPENDED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is suspended.");
+  }
+
+  if (user.status === UserStatus.DELETED) {
+    throw new AppError(httpStatus.FORBIDDEN, "Recruiter is deleted.");
+  }
+
+  if (!user.recruiter) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
+  }
+
+    const andConditions: Prisma.PaymentWhereInput[] = [
+      {
+        recruiterId: user.recruiter.id,
+      },
+    ];
+
+     if (query.searchTerm) {
+       andConditions.push({
+         OR: [
+           {
+             transactionId: {
+               contains: query.searchTerm as string,
+               mode: "insensitive",
+             },
+           },
+           {
+             assessment: {
+               title: {
+                 contains: query.searchTerm as string,
+                 mode: "insensitive",
+               },
+             },
+           },
+         ],
+       });
+     }
+
+     if (query.status) {
+        const normalizedStatus = (
+          query.status as string
+        ).toUpperCase() as PaymentStatus;
+    
+        andConditions.push({
+          status: {
+            equals: normalizedStatus,
+          },
+        });
+      }
+
+       const payments = await prisma.payment.findMany({
+         where: {
+           AND: andConditions,
+         },
+         take: limit,
+         skip,
+         orderBy: {
+           [sortBy]: sortOrder,
+         },
+         include: {
+           assessment: {
+             select: {
+               id: true,
+               title: true,
+             },
+           },
+         },
+       });
+
+         const total = await prisma.payment.count({
+           where: {
+             AND: andConditions,
+           },
+         });
+
+         return {
+           data: payments,
+           meta: {
+             page,
+             limit,
+             total,
+             totalPages: Math.ceil(total / limit),
+           },
+         };
+};
+
 export const paymentServices = {
   createPayment,
   bkashPaymentCallback,
-  retryPayment
+  retryPayment,
+  getRecruiterPayments
 };

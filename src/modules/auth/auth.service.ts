@@ -87,7 +87,59 @@ const registerUser = async (payload: CreateUserPayload) => {
   await transporter.sendMail({
     from: config.email_sender,
     to: email,
-    subject: "Email Verification",
+    subject: "Email Verification OTP",
+    html,
+  });
+};
+
+const resendVerificationCode = async (payloaEmail : string) => {
+  const email = payloaEmail.trim().toLowerCase();
+
+  const isExistsUser = await prisma.user.findUnique({
+    where: {
+     email,
+    },
+  });
+
+   if (!isExistsUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+   }
+
+  if (isExistsUser.emailVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Email is already verified");
+  }
+
+
+  const expirationSeconds = 5 * 60;
+  const otpKey = `user-registration-otp:${email}`;
+  const otpValue = crypto.randomInt(100000, 1000000).toString();
+
+  await redisClient.set(otpKey, otpValue, {
+    expiration: {
+      type: "EX",
+      value: expirationSeconds,
+    },
+  });
+
+
+  const tempatePath = path.join(
+    process.cwd(),
+    "src/templates/registration-user-otp.ejs",
+  );
+
+  const templateData = {
+    name: isExistsUser.name,
+    email,
+    otp: otpValue,
+    expirationMinutes: expirationSeconds / 60,
+  };
+
+  const html = await ejs.renderFile(tempatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Email Verification OTP",
     html,
   });
 };
@@ -420,4 +472,5 @@ export const authServices = {
   generateTokens,
   forgotPassword,
   resetPassword,
+  resendVerificationCode
 };
