@@ -80,107 +80,83 @@ passport.use(
           });
         }
 
-        // 1. Check existing Google user
-        const existingGoogleUser = await prisma.user.findFirst({
-          where: {
-            email,
-            googleId: profile.id,
-          },
+        const existingUserAnyRole = await prisma.user.findFirst({
+          where: { email },
         });
 
-        let user = existingGoogleUser;
+        if (
+          existingUserAnyRole &&
+          existingUserAnyRole.role !== Role.CANDIDATE
+        ) {
+          return done(null, false, {
+            message: "Google login is only allowed for Candidates.",
+          });
+        }
 
-        // 2. Google user doesn't exist
-        if (!existingGoogleUser) {
-          // 3. Check existing credential user
-          const existingCredentialsUser = await prisma.user.findFirst({
-            where: {
+        let user = existingUserAnyRole;
+
+        if (existingUserAnyRole) {
+          if (existingUserAnyRole.status === UserStatus.SUSPENDED) {
+            return done(null, false, { message: "User is suspended" });
+          }
+          if (existingUserAnyRole.status === UserStatus.DELETED) {
+            return done(null, false, { message: "User is deleted!" });
+          }
+
+         
+          if (!existingUserAnyRole.googleId) {
+            user = await prisma.user.update({
+              where: { id: existingUserAnyRole.id },
+              data: {
+                googleId: profile.id,
+                image: profile.photos?.[0]?.value,
+                emailVerified: true,
+              },
+            });
+          }
+        }
+
+        else {
+          user = await prisma.user.create({
+            data: {
+              name: profile.displayName,
               email,
-              provider: AuthProvider.CREDENTIAL,
+              role: Role.CANDIDATE,
+              googleId: profile.id,
+              provider: AuthProvider.GOOGLE,
+              emailVerified: true,
+              image: profile.photos?.[0]?.value,
+              candidate: {
+                create: {},
+              },
+            },
+            include: {
+              candidate: true,
             },
           });
 
-          if (existingCredentialsUser) {
-            if (existingCredentialsUser.status === UserStatus.SUSPENDED) {
-              return done(null, false, {
-                message: "User is suspended",
-              });
-            }
+        
+          try {
+            const templatePath = path.join(
+              process.cwd(),
+              "src/templates/user-welcome-email.ejs",
+            );
+            const templateData = { name: user.name };
+            const html = await ejs.renderFile(templatePath, templateData);
 
-            user = await prisma.user.update({
-              where: {
-                id: existingCredentialsUser.id,
-              },
-              data: {
-                googleId: profile.id,
-                image: profile.photos?.[0]?.value,
-                emailVerified: true,
-              },
+            await transporter.sendMail({
+              from: config.email_sender,
+              to: email,
+              subject: "Welcome To developer assessment & coding platform.",
+              html,
             });
-          }
-
-          // 5. Completely new Google user
-          else {
-            user = await prisma.user.create({
-              data: {
-                name: profile.displayName,
-                email,
-                role: Role.CANDIDATE,
-                googleId: profile.id,
-                provider: AuthProvider.GOOGLE,
-                emailVerified: true,
-                image: profile.photos?.[0]?.value,
-
-                candidate: {
-                  create: {},
-                },
-              },
-              include: {
-                candidate: true,
-              },
-            });
-            try {
-              const templatePath = path.join(
-                process.cwd(),
-                "src/templates/user-welcome-email.ejs",
-              );
-
-              const templateData = {
-                name: user.name,
-              };
-
-              const html = await ejs.renderFile(templatePath, templateData);
-
-              await transporter.sendMail({
-                from: config.email_sender,
-                to: email,
-                subject: "Welcome To developer assessment & coding platfrom.",
-                html,
-              });
-            } catch (error) {
-              console.error("Failed to send welcome email:", error);
-            }
+          } catch (error) {
+            console.error("Failed to send welcome email:", error);
           }
         }
 
-        // 6. Make sure user exists
         if (!user) {
-          return done(null, false, {
-            message: "User not found!",
-          });
-        }
-
-        // 7. Check account status
-        if (user.status === UserStatus.SUSPENDED) {
-          return done(null, false, {
-            message: "User is suspended!",
-          });
-        }
-
-        if (user.status === UserStatus.DELETED) {
-          return done(null, false, {
-            message: "User is deleted!",
-          });
+          return done(null, false, { message: "User not found!" });
         }
 
         return done(null, user);
@@ -190,5 +166,7 @@ passport.use(
     },
   ),
 );
+
+
 
 export default passport;

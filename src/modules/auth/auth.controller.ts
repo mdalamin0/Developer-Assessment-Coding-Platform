@@ -127,21 +127,22 @@ const googleCallback = catchAsync(
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: config.node_env === "production",
-      sameSite: config.node_env === "production" ? "none" : "lax",
+      secure: true, 
+      sameSite: "none", 
       maxAge: 1000 * 60 * 60 * 24,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: config.node_env === "production",
-      sameSite: config.node_env === "production" ? "none" : "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
     res.redirect(`${config.frontend_url}/candidate`);
   },
 );
+
 
 
 
