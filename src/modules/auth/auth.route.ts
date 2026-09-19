@@ -10,6 +10,7 @@ import {
   userVerifyEmailZodSchema,
 } from "./auth.validation";
 import passport from "passport";
+import config from "../../config";
 
 const router = Router();
 
@@ -48,6 +49,7 @@ router.get(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
+    failureRedirect: `${config.frontend_url}/login?error=google-login-failed`,
   }),
   authControllers.googleCallback,
 );
