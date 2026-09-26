@@ -169,6 +169,7 @@ const getMyProblems = async (userId: string, query: IProblemQuery) => {
       type: true,
       difficulty: true,
       marks: true,
+      correctAnswer: true,
       options: true,
       createdAt: true,
       updatedAt: true,

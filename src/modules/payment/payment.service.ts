@@ -400,9 +400,9 @@ const bkashPaymentCallback = async (query: Record<string, any>) => {
     },
   });
 
-  return {
-    redirectUrl: `${config.frontend_url}/dashboard/my-payments?status=success`,
-  };
+ return {
+   redirectUrl: `${config.frontend_url}/recruiter/assessments?payment=success&assessmentId=${payment.assessmentId}`,
+ };
 };
 
 const getRecruiterPayments = async (userId: string, query: IPaymentsQuery) => {

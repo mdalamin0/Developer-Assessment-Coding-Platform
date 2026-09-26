@@ -51,13 +51,6 @@ const createAssessment = async (
     throw new AppError(httpStatus.NOT_FOUND, "Recruiter profile not found.");
   }
 
-  if (payload.passingMarks > payload.totalMarks) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Passing marks cannot be greater than total marks.",
-    );
-  }
-
   if (payload.startAt && payload.endAt) {
     const startDate = parseISO(payload.startAt);
     const endDate = parseISO(payload.endAt);
@@ -86,7 +79,7 @@ const createAssessment = async (
       title: payload.title,
       description: payload.description,
       duration: payload.duration,
-      totalMarks: payload.totalMarks,
+      totalMarks: 0,
       passingMarks: payload.passingMarks,
       startAt: parseISO(payload.startAt),
       endAt: parseISO(payload.endAt),
@@ -179,7 +172,21 @@ const getMyAssessments = async (userId: string, query: IAssessmentQuery) => {
     },
     include: {
       recruiter: true,
+      _count: {
+        select: {
+          problems: true,
+        },
+      },
     },
+  });
+
+  const formattedAssessments = assessments.map((assessment) => {
+    const { _count, ...rest } = assessment;
+
+    return {
+      ...rest,
+      problemCount: _count.problems,
+    };
   });
 
   const total = await prisma.assessment.count({
@@ -189,7 +196,7 @@ const getMyAssessments = async (userId: string, query: IAssessmentQuery) => {
   });
 
   return {
-    data: assessments,
+    data: formattedAssessments,
     meta: {
       page,
       limit,
@@ -515,6 +522,14 @@ const publishAssessment = async (userId: string, assessmentId: string) => {
     );
   }
 
+  // Validate passing marks before payment
+  if (assessment.passingMarks > assessment.totalMarks) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Passing marks cannot be greater than total marks.",
+    );
+  }
+
   const payment = await prisma.payment.findFirst({
     where: {
       assessmentId: assessment.id,
@@ -703,26 +718,42 @@ const addProblemToAssessment = async (
   // Backend generates the next question order
   const questionOrder = assessment.problems.length + 1;
 
-  const assessmentProblem = await prisma.assessmentProblem.create({
-    data: {
-      assessmentId: assessment.id,
-      problemId: problem.id,
-      questionOrder,
-      marks: problem.marks,
-    },
-    include: {
-      problem: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          type: true,
-          difficulty: true,
-          marks: true,
-          options: true,
+  // AssessmentProblem + totalMarks update
+  const assessmentProblem = await prisma.$transaction(async (tx) => {
+    const createdAssessmentProblem = await tx.assessmentProblem.create({
+      data: {
+        assessmentId: assessment.id,
+        problemId: problem.id,
+        questionOrder,
+        marks: problem.marks,
+      },
+      include: {
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            type: true,
+            difficulty: true,
+            marks: true,
+            options: true,
+          },
         },
       },
-    },
+    });
+
+    await tx.assessment.update({
+      where: {
+        id: assessment.id,
+      },
+      data: {
+        totalMarks: {
+          increment: problem.marks,
+        },
+      },
+    });
+
+    return createdAssessmentProblem;
   });
 
   return assessmentProblem;
@@ -853,34 +884,48 @@ const removeProblemFromAssessment = async (
     );
   }
 
-  await prisma.assessmentProblem.delete({
-    where: {
-      id: assessmentProblem.id,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    // Remove problem and update total marks atomically
+    await tx.assessmentProblem.delete({
+      where: {
+        id: assessmentProblem.id,
+      },
+    });
 
-  // Re-order remaining problems
-  const remainingProblems = await prisma.assessmentProblem.findMany({
-    where: {
-      assessmentId: assessment.id,
-    },
-    orderBy: {
-      questionOrder: "asc",
-    },
-  });
+    await tx.assessment.update({
+      where: {
+        id: assessment.id,
+      },
+      data: {
+        totalMarks: {
+          decrement: assessmentProblem.marks,
+        },
+      },
+    });
 
-  await prisma.$transaction(
-    remainingProblems.map((item, index) =>
-      prisma.assessmentProblem.update({
-        where: {
-          id: item.id,
-        },
-        data: {
-          questionOrder: index + 1,
-        },
-      }),
-    ),
-  );
+    // Re-order remaining problems
+    const remainingProblems = await tx.assessmentProblem.findMany({
+      where: {
+        assessmentId: assessment.id,
+      },
+      orderBy: {
+        questionOrder: "asc",
+      },
+    });
+
+    await Promise.all(
+      remainingProblems.map((item, index) =>
+        tx.assessmentProblem.update({
+          where: {
+            id: item.id,
+          },
+          data: {
+            questionOrder: index + 1,
+          },
+        }),
+      ),
+    );
+  });
 
   return null;
 };

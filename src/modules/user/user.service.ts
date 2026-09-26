@@ -3,7 +3,6 @@ import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
-import { ProfileUpdatePayload } from "./user.interface";
 import { UserStatus } from "../../../generated/prisma/enums";
 
 
@@ -35,29 +34,7 @@ const getMe = async (userId: string) => {
   };
 };
 
-// const updateMe = async (payload: ProfileUpdatePayload, userId: string) => {
-//   const user = await prisma.user.findUnique({
-//     where: {
-//       id: userId,
-//     },
-//   });
 
-//   if (!user) {
-//     throw new AppError(httpStatus.NOT_FOUND, "User not found!");
-//   }
-
-//   const updatedUser = await prisma.user.update({
-//     where: {
-//       id: userId,
-//     },
-//     data: {
-//       name: payload.name,
-//     },
-//     omit: { password: true },
-//   });
-
-//   return updatedUser;
-// };
 
 const uploadProfileImage = async (buffer: Buffer, userId: string) => {
   const currentUser = await prisma.user.findUnique({
