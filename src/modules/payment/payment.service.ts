@@ -321,7 +321,7 @@ const bkashPaymentCallback = async (query: Record<string, any>) => {
     });
 
     return {
-      redirectUrl: `${config.frontend_url}/dashboard/my-payments?status=cancel`,
+      redirectUrl: `${config.frontend_url}/recruiter/payments?status=cancel`,
     };
   }
 
@@ -337,7 +337,7 @@ const bkashPaymentCallback = async (query: Record<string, any>) => {
     });
 
     return {
-      redirectUrl: `${config.frontend_url}/dashboard/my-payments?status=failure`,
+      redirectUrl: `${config.frontend_url}/recruiter/payments?status=failure`,
     };
   }
 
@@ -383,7 +383,7 @@ const bkashPaymentCallback = async (query: Record<string, any>) => {
     });
 
     return {
-      redirectUrl: `${config.frontend_url}/dashboard/my-payments?status=failure`,
+      redirectUrl: `${config.frontend_url}/recruiter/payments?status=failure`,
     };
   }
 
