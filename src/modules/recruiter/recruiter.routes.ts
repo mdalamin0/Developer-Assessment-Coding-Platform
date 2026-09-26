@@ -28,4 +28,12 @@ router.get(
   recruiterControllers.getAssessmentStatistics,
 );
 
+router.get(
+  "/all-candidates",
+  auth(Role.RECRUITER),
+  recruiterControllers.getAllCandidates,
+);
+
+
+
 export const recruiterRoutes = router;

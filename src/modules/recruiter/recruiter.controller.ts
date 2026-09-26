@@ -48,8 +48,20 @@ const getAssessmentStatistics = catchAsync(
   },
 );
 
+const getAllCandidates = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await recruiterServices.getAllCandidates(req.query);
+
+    sendResponse(res, {
+      message: "All candidates retrive successfully.",
+      data: result,
+    });
+  },
+);
+
 export const recruiterControllers = {
   updateRecruiterProfile,
   getRecruiterDashboardData,
-  getAssessmentStatistics
+  getAssessmentStatistics,
+  getAllCandidates
 };
